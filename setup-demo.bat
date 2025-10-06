@@ -1,93 +1,95 @@
 @echo off
 echo ========================================
-echo   College Major Project Demo Setup
-echo   Online Quiz Platform with AI Proctoring
+echo   Online Quiz Assessment Platform
+echo   Docker-based Demo Setup
 echo ========================================
 echo.
 
-REM Check if MongoDB is running
-echo [1/5] Checking MongoDB...
-netstat -ano | findstr :27017 > nul
+REM Check if Docker is running
+echo [1/4] Checking Docker...
+docker --version > nul 2>&1
 if %errorlevel% == 0 (
-    echo ✓ MongoDB is running on port 27017
+    echo ✓ Docker is installed
 ) else (
-    echo ✗ MongoDB is NOT running!
-    echo   Please start MongoDB first:
-    echo   docker run -d -p 27017:27017 mongo
+    echo ✗ Docker is NOT installed!
+    echo   Please install Docker Desktop first:
+    echo   https://www.docker.com/products/docker-desktop/
     pause
     exit /b 1
 )
 echo.
 
-REM Check if backend is running
-echo [2/5] Checking Backend...
-netstat -ano | findstr :4000 > nul
+REM Start Docker Compose services
+echo [2/4] Starting all services...
+echo   This will start MongoDB, Backend, and Frontend containers.
+echo   Please wait, this may take a few minutes on first run...
+echo.
+
+docker-compose up -d --build
+
 if %errorlevel% == 0 (
-    echo ✓ Backend is running on port 4000
+    echo ✓ All services started successfully!
 ) else (
-    echo ✗ Backend is NOT running!
-    echo   Starting backend in new window...
-    start "Backend Server" cmd /k "cd backend && npm run dev"
-    timeout /t 5 > nul
+    echo ✗ Failed to start services
+    echo   Please check Docker Desktop is running
+    pause
+    exit /b 1
 )
 echo.
 
-REM Check if frontend is running
-echo [3/5] Checking Frontend...
-netstat -ano | findstr "5173 5174 5175" > nul
-if %errorlevel% == 0 (
-    echo ✓ Frontend is running
-) else (
-    echo ✗ Frontend is NOT running!
-    echo   Starting frontend in new window...
-    start "Frontend Server" cmd /k "cd frontend && npm run dev"
-    timeout /t 5 > nul
-)
+REM Wait for services to be ready
+echo [3/4] Waiting for services to be ready...
+timeout /t 15 /nobreak > nul
+echo ✓ Services should be ready
 echo.
 
 REM Load demo data
-echo [4/5] Loading demo data...
-echo   This will create sample quizzes, users, and results.
-echo   Press any key to continue...
-pause > nul
+echo [4/4] Loading demo data...
+echo   This will create sample users, quizzes, and results.
+echo.
 
-curl -X POST http://localhost:4000/api/seed -H "Content-Type: application/json" > nul 2>&1
+docker-compose exec -T backend node src/utils/seedData.js
 
 if %errorlevel% == 0 (
+    echo.
     echo ✓ Demo data loaded successfully!
     echo.
     echo   Created:
     echo   • 6 users (1 admin, 1 instructor, 4 students)
-    echo   • 5 quizzes (JS, Python, Web Dev, DSA, Database)
-    echo   • 20+ questions with all types
-    echo   • 5 sample results
+    echo   • 3 question banks (JavaScript, Python, Mathematics)
+    echo   • 1 quiz with 2 questions (Multiple Choice + Code)
+    echo   • 3 sample results
 ) else (
+    echo.
     echo ✗ Failed to load demo data
-    echo   Please check if backend is running on port 4000
+    echo   You can try manually: docker-compose exec backend node src/utils/seedData.js
 )
 echo.
 
 REM Open browser
-echo [5/5] Opening browser...
-start http://localhost:5174
-echo ✓ Browser opened
+echo Opening browser...
+start http://localhost:3000
 echo.
 
 echo ========================================
 echo   Demo Setup Complete!
 echo ========================================
 echo.
-echo   Frontend: http://localhost:5174
+echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:4000
 echo   MongoDB:  localhost:27017
 echo.
 echo   Demo Credentials:
-echo   • Admin:      admin@demo.com / demo123
-echo   • Instructor: professor@demo.com / demo123
-echo   • Student:    alice@demo.com / demo123
+echo   • Admin:      admin@quiz.com / admin123
+echo   • Instructor: instructor@quiz.com / instructor123
+echo   • Student:    alice@student.com / student123
 echo.
-echo   Note: Authentication is disabled for demo.
-echo   You're automatically logged in as admin.
+echo   Useful Commands:
+echo   • View logs:    docker-compose logs -f
+echo   • Stop all:     docker-compose down
+echo   • Restart:      docker-compose restart
+echo.
+echo   Documentation: docs/README.md
 echo.
 echo   Press any key to exit...
 pause > nul
