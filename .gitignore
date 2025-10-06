@@ -1,0 +1,208 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production
+/build
+/dist
+/.next
+/out
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+combined.log
+error.log
+
+# Testing
+/coverage
+/.nyc_output
+*.lcov
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# MongoDB
+/data
+/mongo-data
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# OS
+Thumbs.db
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Uploads
+uploads/
+temp/
+tmp/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Build files
+*.build
+*.bundle.*
+
+# SSL Certificates
+*.pem
+*.key
+*.crt
+
+# Secrets
+secrets/
+*.secret
+*.private
+
+# Editor-specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+*.sublime-workspace
+*.sublime-project
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp.*
+.yarn/
+
+# Jest
+jest_*.json
+.jest/
+
+# ESLint
+.eslintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# dotenv environment variable files
+.env*
+!.env.example
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Temporary folders
+tmp/
+temp/
+
+# Monaco Editor
+monaco-editor/
+
+# Face detection models (tracked separately)
+# Uncomment if models are too large for git
+# /frontend/public/face-models/
+
+# Database dumps
+*.dump
+*.sql
+*.sqlite
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Python (if using Python services)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Storybook
+storybook-static/
+
+# Local development
+.local/
+local/
+
+# Documentation builds
+/site
+/_site
+.jekyll-cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Miscellaneous
+.vercel
+.turbo

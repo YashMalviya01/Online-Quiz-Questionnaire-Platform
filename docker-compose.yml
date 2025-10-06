@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/quiz-proctor --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/quiz-proctor
+      JWT_SECRET: supersecretjwt
+      CLIENT_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:3000
+      NODE_ENV: development
+    ports:
+      - '4000:4000'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:4000
+      - VITE_WS_URL=ws://localhost:4000
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
