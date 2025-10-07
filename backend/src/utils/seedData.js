@@ -36,48 +36,59 @@ const seedDatabase = async () => {
       referenceDescriptor: generateMockDescriptor(1)
     });
 
-    const alice = await User.create({
-      username: 'alice',
-      firstName: 'Alice',
-      lastName: 'Brown',
-      email: 'alice@student.com',
+    const aman = await User.create({
+      username: 'aman',
+      firstName: 'Aman',
+      lastName: 'Singh',
+      email: 'aman@student.com',
       password: 'student123',
       role: 'student',
       isVerified: true,
       referenceDescriptor: generateMockDescriptor(2)
     });
 
-    const bob = await User.create({
-      username: 'bob',
-      firstName: 'Bob',
-      lastName: 'Wilson',
-      email: 'bob@student.com',
+    const chetan = await User.create({
+      username: 'chetan',
+      firstName: 'Chetan',
+      lastName: 'Patil',
+      email: 'chetan@student.com',
       password: 'student123',
       role: 'student',
       isVerified: true,
       referenceDescriptor: generateMockDescriptor(3)
     });
 
-    const charlie = await User.create({
-      username: 'charlie',
-      firstName: 'Charlie',
-      lastName: 'Davis',
-      email: 'charlie@student.com',
+    const vanisha = await User.create({
+      username: 'vanisha',
+      firstName: 'Vanisha',
+      lastName: 'Sharma',
+      email: 'vanisha@student.com',
       password: 'student123',
       role: 'student',
       isVerified: true,
       referenceDescriptor: generateMockDescriptor(4)
     });
 
-    const diana = await User.create({
-      username: 'diana',
-      firstName: 'Diana',
-      lastName: 'Martinez',
-      email: 'diana@student.com',
+    const shashank = await User.create({
+      username: 'shashank',
+      firstName: 'Shashank',
+      lastName: 'Verma',
+      email: 'shashank@student.com',
       password: 'student123',
       role: 'student',
       isVerified: true,
       referenceDescriptor: generateMockDescriptor(5)
+    });
+
+    const yash = await User.create({
+      username: 'yash',
+      firstName: 'Yash',
+      lastName: 'Mehta',
+      email: 'yash@student.com',
+      password: 'student123',
+      role: 'student',
+      isVerified: true,
+      referenceDescriptor: generateMockDescriptor(7)
     });
 
     const instructor = await User.create({
@@ -91,7 +102,7 @@ const seedDatabase = async () => {
       referenceDescriptor: generateMockDescriptor(6)
     });
 
-    const students = [alice, bob, charlie, diana];
+  const students = [aman, chetan, vanisha, shashank, yash];
     
     console.log('✅ Users created. Creating question banks...');
     
@@ -241,18 +252,18 @@ const seedDatabase = async () => {
     console.log('🎉 SEED DATA LOADED SUCCESSFULLY!');
     console.log('='.repeat(70));
     console.log('');
-    console.log('👥 USERS (6 total):');
+  console.log('👥 USERS (7 total):');
     console.log('   Admin:      admin@quiz.com / admin123');
     console.log('   Instructor: instructor@quiz.com / instructor123');
-    console.log('   Students:   alice|bob|charlie|diana@student.com / student123');
+  console.log('   Students:   aman|chetan|vanisha|shashank|yash@student.com / student123');
     console.log('');
     console.log('📚 QUESTION BANKS (3 total):');
     console.log('   • JavaScript Essentials (Programming/JavaScript)');
     console.log('   • Python Fundamentals (Programming/Python)');
     console.log('   • Mathematics Practice (Mathematics/General Math)');
     console.log('');
-    console.log('📝 QUIZ CREATED (1 total):');
-    console.log('   Title: JavaScript Fundamentals');
+  console.log('📝 QUIZ CREATED (1 total):');
+  console.log('   Title: Comprehensive Assessment - All Question Types');
     console.log('   • 2 questions (Multiple Choice + Code)');
     console.log('   • Enhanced proctoring enabled');
     console.log('   • 45 min time limit, 3 attempts max');
@@ -262,10 +273,10 @@ const seedDatabase = async () => {
     console.log('   1. Multiple Choice: "What is typeof null?" (5 points)');
     console.log('   2. Code: "Write sum function" (10 points)');
     console.log('');
-    console.log('📊 SAMPLE RESULTS (3 total):');
-    console.log('   • Alice: 66.7% (Failed)');
-    console.log('   • Bob: 100% (Passed)');
-    console.log('   • Charlie: 100% (Passed)');
+  console.log('📊 SAMPLE RESULTS (3 total):');
+  console.log('   • Aman: 66.7% (Failed)');
+  console.log('   • Chetan: 100% (Passed)');
+  console.log('   • Vanisha: 100% (Passed)');
     console.log('');
     console.log('='.repeat(70));
     console.log('✨ Ready for testing! Visit http://localhost:3000');
@@ -275,7 +286,7 @@ const seedDatabase = async () => {
       success: true, 
       message: 'Demo data loaded successfully!',
       data: { 
-        users: 6, 
+        users: 7, 
         questionBanks: 3,
         quizzes: 1, 
         questions: 2,

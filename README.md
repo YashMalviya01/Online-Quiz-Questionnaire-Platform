@@ -126,10 +126,10 @@ The repository includes a comprehensive seeding script that wipes existing quiz-
 |------|-------|----------|--------|
 | Admin | `admin@quiz.com` | `admin123` | Full platform administration, security settings |
 | Instructor | `instructor@quiz.com` | `instructor123` | Quiz authoring, proctoring review, analytics |
-| Students | `alice@student.com`<br>`bob@student.com`<br>`charlie@student.com`<br>`diana@student.com` | `student123` | Quiz participation, result review |
+| Students | `aman@student.com`<br>`chetan@student.com`<br>`vanisha@student.com`<br>`shashank@student.com`<br>`yash@student.com` | `student123` | Quiz participation, result review |
 
 ### What the seed loads
-- 6 verified users (1 admin, 1 instructor, 4 students with biometric descriptors)
+- 7 verified users (1 admin, 1 instructor, 5 students with biometric descriptors)
 - 3 public question banks (JavaScript Essentials, Python Fundamentals, Mathematics Practice)
 - 1 comprehensive quiz showcasing multiple-choice and coding questions with enhanced proctoring enabled
 - 2 sample questions and 3 graded results to populate dashboards and analytics views
