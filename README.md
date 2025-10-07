@@ -108,14 +108,31 @@ Prefer to wire things up yourself? Follow these steps:
    node src/utils/seedData.js
    ```
 
-## 🔐 Demo Accounts
+## 🔐 Demo Seed Data & Credentials
+The repository includes a comprehensive seeding script that wipes existing quiz-related collections and repopulates them with a representative dataset. You can trigger it manually or rely on the platform-specific setup scripts, which call it automatically when spinning up the Docker demo environment.
+
+### Seed the database manually
+1. Ensure the backend `.env` file points to your desired MongoDB instance and that the database is reachable.
+2. From the `backend/` directory, install dependencies and run migrations if you haven't already:
+   ```powershell
+   cd backend
+   npm install
+   node src/utils/seedData.js
+   ```
+   > The seed resets quizzes, question banks, results, analytics, and user collections before inserting demo fixtures. Run it only on non-production databases.
+
+### Accounts created by the seed
 | Role | Email | Password | Access |
 |------|-------|----------|--------|
-| Admin | `admin@quiz.com` | `Admin@123` | Full platform administration |
-| Teacher | `teacher@quiz.com` | `Teacher@123` | Quiz management and grading |
-| Student | `student@quiz.com` | `Student@123` | Assessment participation and results |
+| Admin | `admin@quiz.com` | `admin123` | Full platform administration, security settings |
+| Instructor | `instructor@quiz.com` | `instructor123` | Quiz authoring, proctoring review, analytics |
+| Students | `alice@student.com`<br>`bob@student.com`<br>`charlie@student.com`<br>`diana@student.com` | `student123` | Quiz participation, result review |
 
-> Demo data ships with six users, three question banks, one sample quiz, and representative analytics data.
+### What the seed loads
+- 6 verified users (1 admin, 1 instructor, 4 students with biometric descriptors)
+- 3 public question banks (JavaScript Essentials, Python Fundamentals, Mathematics Practice)
+- 1 comprehensive quiz showcasing multiple-choice and coding questions with enhanced proctoring enabled
+- 2 sample questions and 3 graded results to populate dashboards and analytics views
 
 ## 🧠 Core Features
 ### Assessment Creation
