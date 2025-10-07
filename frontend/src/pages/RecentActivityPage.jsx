@@ -9,26 +9,51 @@ import { fetchResultsForUser, fetchAllResults } from '../store/slices/resultSlic
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import '../styles/globals.css';
+import { getQuizCreatorId, getResultUserId, getUserId } from '../utils/idUtils.js';
 
 const RecentActivityPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { list: results, listStatus } = useSelector((state) => state.results);
+  const isAdmin = user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor';
+  const currentUserId = useMemo(() => getUserId(user), [user]);
 
   useEffect(() => {
     if (!user) return;
     
-    if (user.role === 'admin') {
+    if (isAdmin || isInstructor) {
       dispatch(fetchAllResults());
-    } else if (user.id) {
-      dispatch(fetchResultsForUser(user.id));
+    } else if (currentUserId) {
+      dispatch(fetchResultsForUser(currentUserId));
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, isAdmin, isInstructor, currentUserId]);
+
+  const relevantResults = useMemo(() => {
+    if (!Array.isArray(results)) return [];
+
+    if (isAdmin) {
+      return results;
+    }
+
+    if (isInstructor) {
+      return results.filter((result) => {
+        const creatorId = getQuizCreatorId(result?.quiz);
+        return currentUserId && creatorId === currentUserId;
+      });
+    }
+
+    if (currentUserId) {
+      return results.filter((result) => getResultUserId(result) === currentUserId);
+    }
+
+    return results;
+  }, [results, isAdmin, isInstructor, currentUserId]);
 
   // Get recent activity (last 10 submissions)
   const recentActivity = useMemo(() => {
-    const filtered = results.filter(r => r.status === 'submitted' || r.status === 'completed');
+    const filtered = relevantResults.filter(r => r.status === 'submitted' || r.status === 'completed');
     return filtered
       .sort((a, b) => {
         const dateA = new Date(a.submittedAt || a.updatedAt || a.createdAt);
@@ -36,13 +61,13 @@ const RecentActivityPage = () => {
         return dateB - dateA;
       })
       .slice(0, 20); // Show last 20 activities
-  }, [results]);
+  }, [relevantResults]);
 
   // Calculate stats
   const totalSubmissions = recentActivity.length;
   const averageScore = totalSubmissions > 0
     ? Math.round(recentActivity.reduce((sum, r) => sum + (r.score || 0), 0) / totalSubmissions)
-    : 0;
+    : null;
   const highScores = recentActivity.filter(r => (r.score || 0) >= 80).length;
   const alertCount = recentActivity.reduce((sum, r) => sum + (r.proctoringLog?.length || 0), 0);
 
@@ -67,9 +92,11 @@ const RecentActivityPage = () => {
                 Recent <span className="gradient-text">Activity</span>
               </h1>
               <p className="welcome-subtitle">
-                {user?.role === 'admin' 
-                  ? 'Latest quiz submissions across all students' 
-                  : 'Your recent quiz submissions and performance'}
+                {isAdmin
+                  ? 'Latest quiz submissions across all students'
+                  : isInstructor
+                    ? 'Learner activity across the quizzes you manage'
+                    : 'Your recent quiz submissions and performance'}
               </p>
             </div>
 
@@ -99,7 +126,7 @@ const RecentActivityPage = () => {
                   <Award />
                 </div>
                 <div className="stat-info">
-                  <div className="stat-value">{averageScore}%</div>
+                  <div className="stat-value">{averageScore === null ? '—' : `${averageScore}%`}</div>
                   <div className="stat-label">Average Score</div>
                 </div>
               </Card>
@@ -143,7 +170,7 @@ const RecentActivityPage = () => {
                       <div className="activity-info">
                         <div className="activity-title">
                           {quizTitle}
-                          {user.role === 'admin' && (
+                          {(isAdmin || isInstructor) && (
                             <span className="activity-user"> by {userName}</span>
                           )}
                         </div>
@@ -169,7 +196,7 @@ const RecentActivityPage = () => {
                           )}
                         </div>
                       </div>
-                      {user.role === 'admin' && (
+                      {(isAdmin || isInstructor) && (
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -179,7 +206,7 @@ const RecentActivityPage = () => {
                           Review
                         </Button>
                       )}
-                      {user.role !== 'admin' && (
+                      {!isAdmin && !isInstructor && (
                         <div className={`activity-badge ${score >= 70 ? 'success' : score >= 50 ? 'warning' : 'danger'}`}>
                           {score >= 70 ? 'Pass' : score >= 50 ? 'Average' : 'Needs Review'}
                         </div>
@@ -194,9 +221,11 @@ const RecentActivityPage = () => {
           <div className="empty-state">
             <Activity size={64} className="empty-icon" />
             <h3>No Activity Yet</h3>
-            <p>{user.role === 'admin' 
-              ? 'Quiz submissions will appear here' 
-              : 'Start taking quizzes to see your activity'}</p>
+            <p>{isAdmin
+              ? 'Quiz submissions will appear here'
+              : isInstructor
+                ? 'Learner submissions will appear here once your quizzes are completed'
+                : 'Start taking quizzes to see your activity'}</p>
             <Button variant="primary" onClick={() => navigate('/dashboard')}>
               Browse Quizzes
             </Button>

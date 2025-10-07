@@ -13,7 +13,7 @@ router.get('/:id', quizController.getQuizById);
 
 router.post(
   '/',
-  authorize('admin'),
+  authorize('admin', 'instructor'),
   [
     body('title').notEmpty(),
     body('questions').isArray({ min: 1 }),
@@ -42,7 +42,7 @@ router.post(
   quizController.createQuiz
 );
 
-router.put('/:id', authorize('admin'), quizController.updateQuiz);
-router.delete('/:id', authorize('admin'), quizController.deleteQuiz);
+router.put('/:id', authorize('admin', 'instructor'), quizController.updateQuiz);
+router.delete('/:id', authorize('admin', 'instructor'), quizController.deleteQuiz);
 
 module.exports = router;

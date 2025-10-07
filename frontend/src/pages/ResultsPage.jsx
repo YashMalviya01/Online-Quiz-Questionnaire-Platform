@@ -1,37 +1,67 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchResultsForUser, fetchAllResults } from '../store/slices/resultSlice.js';
+import { getQuizCreatorId, getResultUserId, getUserId } from '../utils/idUtils.js';
 
 const ResultsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { list, listStatus, listError } = useSelector((state) => state.results);
+  const isAdmin = user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor';
+  const currentUserId = useMemo(() => getUserId(user), [user]);
 
   useEffect(() => {
-    if (user) {
-      if (user.role === 'admin') {
-        dispatch(fetchAllResults());
-      } else {
-        dispatch(fetchResultsForUser(user._id));  // Fixed: was user.id, should be user._id
-      }
+    if (!user) return;
+
+    if (isAdmin || isInstructor) {
+      dispatch(fetchAllResults());
+    } else if (currentUserId) {
+      dispatch(fetchResultsForUser(currentUserId));
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, isAdmin, isInstructor, currentUserId]);
+
+  const displayResults = useMemo(() => {
+    if (!Array.isArray(list)) return [];
+
+    if (isAdmin) {
+      return list;
+    }
+
+    if (isInstructor) {
+      return list.filter((result) => {
+        const creatorId = getQuizCreatorId(result?.quiz);
+        return currentUserId && creatorId === currentUserId;
+      });
+    }
+
+    if (currentUserId) {
+      return list.filter((result) => {
+        const resultUserId = getResultUserId(result);
+        return resultUserId === currentUserId;
+      });
+    }
+
+    return list;
+  }, [list, isAdmin, isInstructor, currentUserId]);
 
   return (
     <section className="card">
       <h1>Exam History</h1>
       <p style={{ color: '#64748b' }}>
-        {user?.role === 'admin' 
-          ? 'Review all student submissions, scores, and proctoring alerts.' 
-          : 'Review your scores and any proctoring alerts captured during each session.'}
+        {isAdmin
+          ? 'Review all student submissions, scores, and proctoring alerts.'
+          : isInstructor
+            ? 'Monitor learner submissions, scores, and proctoring alerts for your quizzes.'
+            : 'Review your scores and any proctoring alerts captured during each session.'}
       </p>
       {listStatus === 'loading' && <p>Loading results…</p>}
       {listError && <p style={{ color: '#ef4444' }}>{listError}</p>}
       {listStatus !== 'loading' && (
         <div className="grid">
-          {list.map((result) => {
+          {displayResults.map((result) => {
             const submittedDate = result.submittedAt || result.updatedAt || result.createdAt;
             const userName = result.user?.username || 'Unknown';
             const score = result.score || 0;
@@ -72,7 +102,7 @@ const ResultsPage = () => {
                   </span>
                 </div>
                 
-                {user?.role === 'admin' && (
+                {(isAdmin || isInstructor) && (
                   <p style={{ color: '#64748b', margin: '0.5rem 0', fontSize: '0.9rem' }}>
                     <strong>Student:</strong> {userName}
                   </p>
@@ -108,12 +138,12 @@ const ResultsPage = () => {
                   style={{ marginTop: '1rem', width: '100%' }}
                   onClick={() => navigate(`/results/${result._id}`)}
                 >
-                  {user?.role === 'admin' ? 'Review Submission' : 'View Details'}
+                  {isAdmin || isInstructor ? 'Review Submission' : 'View Details'}
                 </button>
               </div>
             );
           })}
-          {listStatus === 'succeeded' && list.length === 0 && (
+          {listStatus === 'succeeded' && displayResults.length === 0 && (
             <div style={{ 
               textAlign: 'center', 
               padding: '3rem', 
@@ -122,9 +152,11 @@ const ResultsPage = () => {
             }}>
               <p style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>No results yet.</p>
               <p style={{ fontSize: '0.875rem' }}>
-                {user?.role === 'admin' 
-                  ? 'Student submissions will appear here once they complete quizzes.' 
-                  : 'Start taking quizzes to see your results here.'}
+                {isAdmin
+                  ? 'Student submissions will appear here once they complete quizzes.'
+                  : isInstructor
+                    ? 'Learner submissions will appear here once your quizzes are attempted.'
+                    : 'Start taking quizzes to see your results here.'}
               </p>
             </div>
           )}

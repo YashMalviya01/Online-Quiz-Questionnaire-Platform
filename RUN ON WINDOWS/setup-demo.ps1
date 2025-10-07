@@ -131,20 +131,20 @@ Write-Host "   Setup Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host " Frontend: http://localhost:3000" -ForegroundColor Cyan
-Write-Host " Backend API: http://localhost:5000/api" -ForegroundColor Cyan
+Write-Host " Backend API: http://localhost:4000/api" -ForegroundColor Cyan
 Write-Host ""
-Write-Host " Demo Accounts:" -ForegroundColor Yellow
+Write-Host " Demo Credentials:" -ForegroundColor Yellow
 Write-Host "  Admin:" -ForegroundColor White
 Write-Host "    Email: admin@quiz.com" -ForegroundColor Gray
-Write-Host "    Password: Admin@123" -ForegroundColor Gray
+Write-Host "    Password: admin123" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  Teacher:" -ForegroundColor White
-Write-Host "    Email: teacher@quiz.com" -ForegroundColor Gray
-Write-Host "    Password: Teacher@123" -ForegroundColor Gray
+Write-Host "  Instructor:" -ForegroundColor White
+Write-Host "    Email: instructor@quiz.com" -ForegroundColor Gray
+Write-Host "    Password: instructor123" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  Student:" -ForegroundColor White
-Write-Host "    Email: student@quiz.com" -ForegroundColor Gray
-Write-Host "    Password: Student@123" -ForegroundColor Gray
+Write-Host "  Students:" -ForegroundColor White
+Write-Host "    Emails: aman|chetan|vanisha|shashank|yash@student.com" -ForegroundColor Gray
+Write-Host "    Password: student123" -ForegroundColor Gray
 Write-Host ""
 Write-Host " Documentation:" -ForegroundColor Yellow
 Write-Host "  See README.md for full documentation" -ForegroundColor Gray

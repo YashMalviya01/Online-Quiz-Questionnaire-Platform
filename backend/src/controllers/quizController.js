@@ -38,8 +38,22 @@ const prepareQuestionPayload = (question) => {
 
 exports.getQuizzes = async (req, res, next) => {
   try {
-    // Students should only see published quizzes, admins see all
-    const filter = req.user.role === 'admin' ? {} : { isPublished: true };
+    // Students should only see published quizzes.
+    // Instructors can view their own quizzes (even drafts) plus published quizzes.
+    // Admins can view everything.
+    let filter = { isPublished: true };
+
+    if (req.user.role === 'admin') {
+      filter = {};
+    } else if (req.user.role === 'instructor') {
+      filter = {
+        $or: [
+          { isPublished: true },
+          { createdBy: req.user._id }
+        ]
+      };
+    }
+
     const quizzes = await withQuestions(Quiz.find(filter));
     res.json(quizzes);
   } catch (error) {
@@ -94,6 +108,10 @@ exports.updateQuiz = async (req, res, next) => {
       return res.status(404).json({ message: 'Quiz not found' });
     }
 
+    if (req.user.role === 'instructor' && quiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Forbidden: you can only update quizzes you created' });
+    }
+
     if (title) quiz.title = title;
     if (description !== undefined) quiz.description = description;
     if (isPublished !== undefined) quiz.isPublished = isPublished;
@@ -118,6 +136,10 @@ exports.deleteQuiz = async (req, res, next) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) {
       return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    if (req.user.role === 'instructor' && quiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Forbidden: you can only delete quizzes you created' });
     }
 
     await Question.deleteMany({ _id: { $in: quiz.questions } });

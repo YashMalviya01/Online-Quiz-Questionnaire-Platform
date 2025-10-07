@@ -30,7 +30,7 @@ router.post(
   ],
   resultController.submitExam
 );
-router.get('/', authorize('admin'), resultController.getAllResults);
+router.get('/', authorize('admin', 'instructor'), resultController.getAllResults);
 router.get('/user/:userId', resultController.getResultsForUser);
 router.get('/:resultId', resultController.getResult);
 

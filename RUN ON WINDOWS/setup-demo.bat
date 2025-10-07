@@ -65,7 +65,7 @@ if %errorlevel% == 0 (
     echo ✓ Demo data loaded successfully!
     echo.
     echo   Created:
-    echo   • 6 users (1 admin, 1 instructor, 4 students)
+    echo   • 7 users (1 admin, 1 instructor, 5 students)
     echo   • 3 question banks (JavaScript, Python, Mathematics)
     echo   • 1 quiz with 2 questions (Multiple Choice + Code)
     echo   • 3 sample results
@@ -92,7 +92,7 @@ echo.
 echo   Demo Credentials:
 echo   • Admin:      admin@quiz.com / admin123
 echo   • Instructor: instructor@quiz.com / instructor123
-echo   • Student:    alice@student.com / student123
+echo   • Students:   aman^|chetan^|vanisha^|shashank^|yash@student.com / student123
 echo.
 echo   Useful Commands:
 echo   • View logs:    docker-compose logs -f

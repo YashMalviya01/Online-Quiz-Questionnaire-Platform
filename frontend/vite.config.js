@@ -19,7 +19,29 @@ export default defineConfig({
         // Force new hash by including timestamp in build
         entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
         chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          const modulePath = id
+            .split('node_modules/')[1]
+            ?.split('/');
+
+          if (!modulePath || modulePath.length === 0) {
+            return 'vendor';
+          }
+
+          const first = modulePath[0];
+          const packageName = first.startsWith('@')
+            ? `${first}/${modulePath[1]}`
+            : first;
+
+          return packageName
+            .replace('@', '')
+            .replace(/\//g, '-');
+        }
       }
     }
   }

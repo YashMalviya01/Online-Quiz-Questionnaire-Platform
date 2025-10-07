@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -6,9 +6,11 @@ import {
   Award, TrendingUp, ArrowLeft
 } from 'lucide-react';
 import { fetchQuizzes, deleteQuiz, toggleQuizPublishStatus } from '../store/slices/quizSlice.js';
+import { fetchAllResults, fetchResultsForUser } from '../store/slices/resultSlice.js';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import '../styles/globals.css';
+import { getQuizCreatorId, getQuizId, getResultUserId, getUserId } from '../utils/idUtils.js';
 
 const AvailableQuizzesPage = () => {
   const dispatch = useDispatch();
@@ -17,10 +19,23 @@ const AvailableQuizzesPage = () => {
   const { items: quizzes, status: quizzesStatus } = useSelector((state) => state.quizzes);
   const { list: results } = useSelector((state) => state.results);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const isAdmin = user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor';
+  const currentUserId = useMemo(() => getUserId(user), [user]);
 
   useEffect(() => {
     dispatch(fetchQuizzes());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (isAdmin || isInstructor) {
+      dispatch(fetchAllResults());
+    } else if (currentUserId) {
+      dispatch(fetchResultsForUser(currentUserId));
+    }
+  }, [dispatch, user, isAdmin, isInstructor, currentUserId]);
 
   const handleDeleteQuiz = (quizId, quizTitle) => {
     if (deleteConfirm === quizId) {
@@ -36,27 +51,58 @@ const AvailableQuizzesPage = () => {
     dispatch(toggleQuizPublishStatus({ quizId, isPublished: !currentStatus }));
   };
 
+  const instructorQuizzes = useMemo(() => {
+    if (!isInstructor || !currentUserId) return [];
+    return quizzes.filter((quiz) => getQuizCreatorId(quiz) === currentUserId);
+  }, [quizzes, isInstructor, currentUserId]);
+
+  const visibleQuizzes = useMemo(() => {
+    if (isAdmin) return quizzes;
+    if (isInstructor) return instructorQuizzes;
+    return quizzes.filter((quiz) => quiz.isPublished);
+  }, [quizzes, isAdmin, isInstructor, instructorQuizzes]);
+
   // Calculate stats
-  const totalQuizzes = user?.role === 'admin' 
-    ? quizzes.length 
-    : quizzes.filter(q => q.isPublished).length;
+  const totalQuizzes = isAdmin
+    ? quizzes.length
+    : isInstructor
+      ? instructorQuizzes.length
+      : quizzes.filter((q) => q.isPublished).length;
   
-  // For both admin and student, count unique quizzes completed
-  const completedResults = results.filter(r => r.status === 'submitted' || r.status === 'completed');
-  const completedQuizzes = new Set(completedResults.map(r => r.quiz?._id || r.quiz)).size;
+  const relevantResults = useMemo(() => {
+    if (isAdmin || isInstructor) return results;
+    if (currentUserId) {
+      return results.filter((result) => getResultUserId(result) === currentUserId);
+    }
+    return results;
+  }, [results, isAdmin, isInstructor, currentUserId]);
+
+  const completedResults = relevantResults.filter(r => r.status === 'submitted' || r.status === 'completed');
+  const completedQuizIds = new Set();
+  completedResults.forEach((result) => {
+    const quizId = getQuizId(result.quiz);
+    if (quizId) {
+      completedQuizIds.add(quizId);
+    }
+  });
+  const completedQuizzes = completedQuizIds.size;
   
   const remainingQuizzes = Math.max(0, totalQuizzes - completedQuizzes);
   const progressPercentage = totalQuizzes > 0 
     ? Math.round((completedQuizzes / totalQuizzes) * 100) 
     : 0;
   
-  const draftQuizzes = user?.role === 'admin'
+  const draftQuizzes = isAdmin
     ? quizzes.filter(q => !q.isPublished).length
-    : 0;
+    : isInstructor
+      ? instructorQuizzes.filter(q => !q.isPublished).length
+      : 0;
 
-  const publishedQuizzes = user?.role === 'admin'
+  const publishedQuizzes = isAdmin
     ? quizzes.filter(q => q.isPublished).length
-    : 0;
+    : isInstructor
+      ? instructorQuizzes.filter(q => q.isPublished).length
+      : 0;
 
   return (
     <div className="dashboard-page">
@@ -76,12 +122,14 @@ const AvailableQuizzesPage = () => {
             
             <div className="welcome-section">
               <h1 className="welcome-title">
-                {user?.role === 'admin' ? 'All' : 'Available'} <span className="gradient-text">Quizzes</span>
+                {isAdmin ? 'All' : isInstructor ? 'Manage' : 'Available'} <span className="gradient-text">Quizzes</span>
               </h1>
               <p className="welcome-subtitle">
-                {user?.role === 'admin' 
-                  ? 'Create, edit, and manage all quizzes' 
-                  : 'Choose a quiz to start your assessment'}
+                {isAdmin
+                  ? 'Create, edit, and manage all quizzes'
+                  : isInstructor
+                    ? 'Design assessments, monitor drafts, and track learner progress'
+                    : 'Choose a quiz to start your assessment'}
               </p>
             </div>
 
@@ -93,12 +141,12 @@ const AvailableQuizzesPage = () => {
                 <div className="stat-info">
                   <div className="stat-value">{totalQuizzes}</div>
                   <div className="stat-label">
-                    {user?.role === 'admin' ? 'Total Quizzes' : 'Available Quizzes'}
+                    {isAdmin ? 'Total Quizzes' : isInstructor ? 'My Quizzes' : 'Available Quizzes'}
                   </div>
                 </div>
               </Card>
 
-              {user?.role === 'admin' ? (
+              {isAdmin || isInstructor ? (
                 <>
                   <Card className="stat-card stat-card--green">
                     <div className="stat-icon">
@@ -125,8 +173,8 @@ const AvailableQuizzesPage = () => {
                       <Award />
                     </div>
                     <div className="stat-info">
-                      <div className="stat-value">{results.length}</div>
-                      <div className="stat-label">Total Submissions</div>
+                      <div className="stat-value">{relevantResults.length}</div>
+                      <div className="stat-label">{isInstructor ? 'Learner Submissions' : 'Total Submissions'}</div>
                     </div>
                   </Card>
                 </>
@@ -170,7 +218,7 @@ const AvailableQuizzesPage = () => {
 
       <div className="container dashboard-content">
         {/* Create Quiz Button for Admin */}
-        {user?.role === 'admin' && (
+        {(isAdmin || isInstructor) && (
           <div style={{ marginBottom: '2rem', marginTop: 0 }}>
             <Button 
               variant="primary" 
@@ -189,16 +237,15 @@ const AvailableQuizzesPage = () => {
             <Clock size={64} className="empty-icon" />
             <h3>Loading quizzes...</h3>
           </div>
-        ) : quizzes.length > 0 ? (
+        ) : visibleQuizzes.length > 0 ? (
           <section className="section" style={{ marginTop: 0 }}>
             <div className="quizzes-grid">
-              {quizzes
-                .filter(quiz => user?.role === 'admin' || quiz.isPublished)
-                .map((quiz) => {
-                  const hasAttempted = results.some(
-                    r => (r.quiz?._id || r.quiz) === quiz._id
-                  );
-                  
+              {visibleQuizzes.map((quiz) => {
+                const quizId = quiz._id;
+                const hasAttempted = completedResults.some(
+                  (result) => getQuizId(result.quiz) === String(quizId)
+                );
+
                   return (
                     <Card key={quiz._id} className="quiz-card">
                       <div className="quiz-card-header">
@@ -213,7 +260,7 @@ const AvailableQuizzesPage = () => {
                       )}
                       
                       {/* Publish Status Toggle for Admin */}
-                      {user?.role === 'admin' && (
+                      {(isAdmin || isInstructor) && (
                         <div 
                           className="quiz-publish-toggle"
                           onClick={(e) => e.stopPropagation()}
@@ -237,7 +284,7 @@ const AvailableQuizzesPage = () => {
                           <BookOpen size={14} />
                           {quiz.questions?.length || 0} questions
                         </span>
-                        {user?.role === 'admin' && (
+                        {(isAdmin || isInstructor) && (
                           <span className="quiz-created">
                             <Clock size={14} />
                             {new Date(quiz.createdAt).toLocaleDateString()}
@@ -245,7 +292,7 @@ const AvailableQuizzesPage = () => {
                         )}
                       </div>
                       
-                      {user?.role === 'admin' ? (
+                      {isAdmin || isInstructor ? (
                         <div className="quiz-admin-actions">
                           <Button 
                             variant="primary" 
@@ -288,8 +335,8 @@ const AvailableQuizzesPage = () => {
           <div className="empty-state">
             <BookOpen size={64} className="empty-icon" />
             <h3>No Quizzes Available</h3>
-            <p>{user?.role === 'admin' ? 'Create your first quiz to get started' : 'Check back later for new quizzes'}</p>
-            {user?.role === 'admin' && (
+            <p>{isAdmin ? 'Create your first quiz to get started' : isInstructor ? 'Create your first quiz to get started' : 'Check back later for new quizzes'}</p>
+            {(isAdmin || isInstructor) && (
               <Button variant="primary" onClick={() => navigate('/manage-quiz')}>
                 <Plus size={18} />
                 Create Quiz

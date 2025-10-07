@@ -7,6 +7,7 @@ import { fetchQuizById } from '../store/slices/quizSlice.js';
 import { startExam, submitExam } from '../store/slices/resultSlice.js';
 import { verifyFaceDescriptor } from '../store/slices/authSlice.js';
 import faceapi, { loadFaceApiModels } from '../utils/faceApiLoader.js';
+import { getQuizId, getResultUserId, getUserId } from '../utils/idUtils.js';
 import { Camera, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 const QuizPage = () => {
@@ -32,6 +33,7 @@ const QuizPage = () => {
   const [cameraStream, setCameraStream] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const currentUserId = useMemo(() => getUserId(user), [user]);
 
   useEffect(() => {
     dispatch(fetchQuizById(quizId));
@@ -84,14 +86,18 @@ const QuizPage = () => {
 
   // Check attempts remaining
   const { attemptsTaken, attemptsRemaining, canTakeQuiz } = useMemo(() => {
-    if (!quiz || !user) return { attemptsTaken: 0, attemptsRemaining: null, canTakeQuiz: true };
+    const quizId = getQuizId(quiz);
+    if (!quizId || !currentUserId) {
+      return { attemptsTaken: 0, attemptsRemaining: null, canTakeQuiz: true };
+    }
     
     // Get all results for this quiz by this user
-    const userResults = allResults.filter(r => 
-      (r.quiz?._id === quiz._id || r.quiz === quiz._id) && 
-      (r.user?._id === user.id || r.user === user.id) &&
-      (r.status === 'submitted' || r.status === 'completed')
-    );
+    const userResults = allResults.filter((r) => {
+      const resultQuizId = getQuizId(r.quiz);
+      const resultUserId = getResultUserId(r);
+      const statusMatch = r.status === 'submitted' || r.status === 'completed';
+      return statusMatch && resultQuizId === quizId && resultUserId === currentUserId;
+    });
     
     const taken = userResults.length;
     const maxAttempts = quiz.maxAttempts;
@@ -106,13 +112,13 @@ const QuizPage = () => {
       attemptsRemaining: remaining, 
       canTakeQuiz: remaining > 0 
     };
-  }, [quiz, user, allResults]);
+  }, [quiz, allResults, currentUserId]);
 
   // Check if user needs face verification
   useEffect(() => {
     if (user) {
       // Admin or already verified - skip face verification
-      if (user.role === 'admin' || user.isFaceVerified) {
+      if (user.role === 'admin' || user.role === 'instructor' || user.isFaceVerified) {
         setFaceVerificationComplete(true);
       }
       // No reference face - skip verification but show warning

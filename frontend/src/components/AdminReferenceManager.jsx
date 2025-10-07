@@ -6,6 +6,7 @@ import {
   resetUploadState,
   uploadReferenceFace
 } from '../store/slices/adminSlice.js';
+import { getUserId } from '../utils/idUtils.js';
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024; // 8MB
 // CACHE BUST: Force new build hash - October 6, 2025
@@ -42,10 +43,10 @@ const AdminReferenceManager = () => {
     (state) => state.admin
   );
 
-  const selectedUser = useMemo(
-    () => users.find((user) => user.id === selectedUserId) || null,
-    [selectedUserId, users]
-  );
+  const selectedUser = useMemo(() => {
+    if (!selectedUserId) return null;
+    return users.find((candidate) => getUserId(candidate) === selectedUserId) || null;
+  }, [selectedUserId, users]);
 
   useEffect(() => {
     dispatch(fetchAdminUsers());
@@ -259,10 +260,11 @@ const AdminReferenceManager = () => {
               {listStatus === 'succeeded' && users.length > 0 && (
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {users.map((user) => {
-                    const active = user.id === selectedUserId;
+                    const userId = getUserId(user);
+                    const active = userId && userId === selectedUserId;
                     return (
                       <li
-                        key={user.id}
+                        key={userId || user.email}
                         style={{
                           borderBottom: '1px solid #e2e8f0',
                           background: active ? '#eff6ff' : '#fff',
@@ -272,7 +274,9 @@ const AdminReferenceManager = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedUserId(user.id);
+                            if (userId) {
+                              setSelectedUserId(userId);
+                            }
                             setProcessingStatus('idle');
                             setProcessingError('');
                             setDetectedDescriptor(null);

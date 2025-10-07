@@ -20,14 +20,19 @@ const ManageQuizPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
+  const canManageQuizzes = user?.role === 'admin' || user?.role === 'instructor';
 
   useEffect(() => {
+    if (!canManageQuizzes) {
+      return;
+    }
+
     if (quizId) {
       dispatch(fetchQuizById(quizId));
     }
-  }, [dispatch, quizId]);
+  }, [dispatch, quizId, canManageQuizzes]);
 
-  if (user?.role !== 'admin') {
+  if (!canManageQuizzes) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -10,7 +10,14 @@ const populateResult = (query) =>
 
 exports.getAllResults = async (req, res, next) => {
   try {
-    const results = await populateResult(Result.find().sort({ createdAt: -1 }));
+    let query = Result.find().sort({ createdAt: -1 });
+
+    if (req.user.role === 'instructor') {
+      const quizIds = await Quiz.find({ createdBy: req.user._id }).distinct('_id');
+      query = Result.find({ quiz: { $in: quizIds } }).sort({ createdAt: -1 });
+    }
+
+    const results = await populateResult(query);
     res.json(results);
   } catch (error) {
     next(error);

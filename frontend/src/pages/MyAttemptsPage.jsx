@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,28 +9,43 @@ import { fetchResultsForUser } from '../store/slices/resultSlice';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import '../styles/globals.css';
+import { getResultUserId, getUserId } from '../utils/idUtils.js';
 
 const MyAttemptsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { list: results, listStatus } = useSelector((state) => state.results);
+  const currentUserId = useMemo(() => getUserId(user), [user]);
 
   useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchResultsForUser(user.id));
+    if (currentUserId) {
+      dispatch(fetchResultsForUser(currentUserId));
     }
-  }, [dispatch, user]);
+  }, [dispatch, currentUserId]);
 
   // Filter to only show submitted/completed attempts
-  const myAttempts = results.filter(r => r.status === 'submitted' || r.status === 'completed');
+  const myAttempts = useMemo(() => {
+    if (!currentUserId) return [];
+    return results.filter((r) =>
+      (r.status === 'submitted' || r.status === 'completed') &&
+      getResultUserId(r) === currentUserId
+    );
+  }, [results, currentUserId]);
 
   // Calculate stats
   const totalAttempts = myAttempts.length;
   const averageScore = totalAttempts > 0
     ? Math.round(myAttempts.reduce((sum, r) => sum + (r.score || 0), 0) / totalAttempts)
-    : 0;
+    : null;
   const passedQuizzes = myAttempts.filter(r => (r.score || 0) >= 70).length;
+  const performanceLabel = averageScore === null
+    ? 'Getting Started'
+    : averageScore >= 70
+      ? 'Excellent'
+      : averageScore >= 50
+        ? 'Good'
+        : 'Improving';
 
   return (
     <div className="dashboard-page">
@@ -83,7 +98,7 @@ const MyAttemptsPage = () => {
                   <Award />
                 </div>
                 <div className="stat-info">
-                  <div className="stat-value">{averageScore}%</div>
+                  <div className="stat-value">{averageScore === null ? '—' : `${averageScore}%`}</div>
                   <div className="stat-label">Average Score</div>
                 </div>
               </Card>
@@ -94,7 +109,7 @@ const MyAttemptsPage = () => {
                 </div>
                 <div className="stat-info">
                   <div className="stat-value">
-                    {averageScore >= 70 ? 'Excellent' : averageScore >= 50 ? 'Good' : 'Improving'}
+                    {performanceLabel}
                   </div>
                   <div className="stat-label">Performance</div>
                 </div>
@@ -133,7 +148,7 @@ const MyAttemptsPage = () => {
                       <div className="result-score-section">
                         <span className="result-score-label">Score:</span>
                         <span className={`result-score ${score >= 70 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low'}`}>
-                          {score}%
+                          {`${score}%`}
                         </span>
                       </div>
                       

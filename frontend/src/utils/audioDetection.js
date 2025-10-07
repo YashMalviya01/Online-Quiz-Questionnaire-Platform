@@ -14,11 +14,14 @@ class AudioDetection {
     this.suspiciousAudioCount = 0;
     
     // Speech detection state
-    this.speechHistory = [];
-    this.backgroundNoiseLevel = 0;
-    this.lastSpeechTime = null;
-    this.consecutiveSpeechFrames = 0;
-    this.silenceFrames = 0;
+  this.speechHistory = [];
+  this.backgroundNoiseLevel = 0;
+  this.lastSpeechTime = null;
+  this.consecutiveSpeechFrames = 0;
+  this.silenceFrames = 0;
+  this.lastPatternAlertTime = 0;
+  this.lastVolumeFluctuationAlertTime = 0;
+  this.lastPatternAnalysisTime = 0;
     
     // Thresholds (adjusted for Float32Array which has smaller values)
     // Current levels observed: RMS=0.0003, VoiceEnergy=0-2.5
@@ -32,7 +35,10 @@ class AudioDetection {
       suspiciousPatternWindow: 5000, // ms - window to analyze patterns
       warmupPeriod: 5000,           // 5 seconds warmup before alerting (reduced for testing)
       minSuspiciousDetections: 2,   // Need 2 detections before alerting (reduced for testing)
-      alertCooldown: 10000          // 10 seconds between alerts
+      alertCooldown: 10000,         // 10 seconds between alerts
+      patternAlertCooldown: 30000,  // 30 seconds between pattern alerts
+      volumeFluctuationCooldown: 15000, // 15 seconds between volume fluctuation alerts
+      patternAnalysisInterval: 1000 // Only analyze patterns once per second
     };
   }
 
@@ -289,6 +295,14 @@ class AudioDetection {
   }
 
   analyzePatterns() {
+    const now = Date.now();
+
+    if ((now - this.lastPatternAnalysisTime) < this.thresholds.patternAnalysisInterval) {
+      return;
+    }
+
+    this.lastPatternAnalysisTime = now;
+
     // Look for suspicious patterns like:
     // 1. Regular intervals of speech (someone reading answers)
     // 2. Short bursts of speech followed by silence (Q&A pattern)
@@ -312,12 +326,14 @@ class AudioDetection {
         sum + Math.pow(val - avgInterval, 2), 0) / intervals.length;
       
       // Low variance = regular pattern = suspicious
-      if (variance < 100000 && avgInterval < 1500) {
+      if (variance < 100000 && avgInterval < 1500 &&
+          (now - this.lastPatternAlertTime) > this.thresholds.patternAlertCooldown) {
         this.triggerAlert('SUSPICIOUS_SPEECH_PATTERN', 'high', {
           pattern: 'regular_intervals',
           avgInterval: Math.round(avgInterval),
           message: 'Regular speech pattern detected (possible Q&A exchange)'
         });
+        this.lastPatternAlertTime = now;
       }
     }
 
@@ -329,11 +345,13 @@ class AudioDetection {
     }
 
     const avgVolumeChange = volumeChanges.reduce((a, b) => a + b, 0) / volumeChanges.length;
-    if (avgVolumeChange > 0.01) {
+    if (avgVolumeChange > 0.01 &&
+        (now - this.lastVolumeFluctuationAlertTime) > this.thresholds.volumeFluctuationCooldown) {
       this.triggerAlert('VOLUME_FLUCTUATION', 'medium', {
         change: avgVolumeChange.toFixed(4),
         message: 'Significant volume fluctuations (multiple speakers suspected)'
       });
+      this.lastVolumeFluctuationAlertTime = now;
     }
   }
 
