@@ -25,7 +25,9 @@ echo   This will start MongoDB, Backend, and Frontend containers.
 echo   Please wait, this may take a few minutes on first run...
 echo.
 
+cd ..
 docker-compose up -d --build
+cd "RUN ON WINDOWS"
 
 if %errorlevel% == 0 (
     echo ✓ All services started successfully!
@@ -48,7 +50,9 @@ echo [4/4] Loading demo data...
 echo   This will create sample users, quizzes, and results.
 echo.
 
+cd ..
 docker-compose exec -T backend node src/utils/seedData.js
+cd "RUN ON WINDOWS"
 
 if %errorlevel% == 0 (
     echo.
