@@ -6,7 +6,7 @@ echo ========================================
 echo.
 
 REM Check if Docker is running
-echo [1/4] Checking Docker...
+echo [1/5] Checking Docker...
 docker --version > nul 2>&1
 if %errorlevel% == 0 (
     echo ✓ Docker is installed
@@ -19,8 +19,14 @@ if %errorlevel% == 0 (
 )
 echo.
 
+REM Prepare environment files
+echo [2/5] Preparing environment files...
+call :EnsureEnv "..\backend" "backend"
+call :EnsureEnv "..\frontend" "frontend"
+echo.
+
 REM Start Docker Compose services
-echo [2/4] Starting all services...
+echo [3/5] Starting all services...
 echo   This will start MongoDB, Backend, and Frontend containers.
 echo   Please wait, this may take a few minutes on first run...
 echo.
@@ -40,13 +46,13 @@ if %errorlevel% == 0 (
 echo.
 
 REM Wait for services to be ready
-echo [3/4] Waiting for services to be ready...
+echo [4/5] Waiting for services to be ready...
 timeout /t 15 /nobreak > nul
 echo ✓ Services should be ready
 echo.
 
 REM Load demo data
-echo [4/4] Loading demo data...
+echo [5/5] Loading demo data...
 echo   This will create sample users, quizzes, and results.
 echo.
 
@@ -97,3 +103,41 @@ echo   Documentation: docs/README.md
 echo.
 echo   Press any key to exit...
 pause > nul
+
+goto :EOF
+
+:EnsureEnv
+set "dir=%~1"
+set "label=%~2"
+
+if exist "%dir%\.env" (
+    echo   ✓ %label% .env already exists
+    goto :EOF
+)
+
+if exist "%dir%\.env.example" (
+    copy /Y "%dir%\.env.example" "%dir%\.env" > nul
+    echo   ✓ Created %label% .env from template
+    goto :EOF
+)
+
+if /I "%label%"=="backend" (
+    > "%dir%\.env" (
+        echo PORT=5000
+        echo NODE_ENV=development
+        echo MONGODB_URI=mongodb://mongo:27017/quiz-platform
+        echo JWT_SECRET=supersecretjwt
+        echo SESSION_SECRET=supersecretsession
+        echo FRONTEND_URL=http://localhost:3000
+        echo CLIENT_ORIGIN=http://localhost:3000
+        echo LOG_LEVEL=info
+    )
+) else (
+    > "%dir%\.env" (
+        echo VITE_API_BASE_URL=http://localhost:4000
+        echo VITE_WS_URL=ws://localhost:4000
+        echo VITE_API_PORT=4000
+    )
+)
+echo   Generated %label% .env with defaults
+goto :EOF

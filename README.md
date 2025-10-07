@@ -71,6 +71,8 @@ Pick your platform and run the bundled setup script:
 | 🍎 macOS | `cd "RUN ON MAC" && chmod +x *.sh && ./setup-demo.sh` |
 | 🐧 Linux | `cd "RUN ON LINUX" && chmod +x *.sh && ./setup-demo.sh` |
 
+> ℹ️ These scripts spin up Docker containers with built-in defaults and **auto-create backend/frontend `.env` files** if they don't exist, so you're ready to explore with a single click. Update the generated `.env` files afterward if you need custom credentials or third-party keys—see [Manual Setup](#-manual-setup) and [Deployment](#-deployment).
+
 The script verifies Docker, builds the containers, boots the stack, seeds demo data, and opens the app at `http://localhost:3000` (frontend) with the API at `http://localhost:5000/api`.
 
 ## 🧼 Manual Setup

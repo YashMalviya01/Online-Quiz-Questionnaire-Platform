@@ -12,6 +12,40 @@ WHITE='\033[1;37m'
 GRAY='\033[0;37m'
 NC='\033[0m' # No Color
 
+create_env_file() {
+    local service_dir="$1"
+    local label="$2"
+    local example_file="$service_dir/.env.example"
+    local target_file="$service_dir/.env"
+
+    if [ -f "$target_file" ]; then
+        echo -e "${GREEN}✓ ${label} .env already exists${NC}"
+    elif [ -f "$example_file" ]; then
+        cp "$example_file" "$target_file"
+        echo -e "${GREEN}✓ Created ${label} .env from template${NC}"
+    else
+        if [ "$label" = "Backend" ]; then
+            cat <<'EOF' > "$target_file"
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb://mongo:27017/quiz-platform
+JWT_SECRET=supersecretjwt
+SESSION_SECRET=supersecretsession
+FRONTEND_URL=http://localhost:3000
+CLIENT_ORIGIN=http://localhost:3000
+LOG_LEVEL=info
+EOF
+        else
+            cat <<'EOF' > "$target_file"
+VITE_API_BASE_URL=http://localhost:4000
+VITE_WS_URL=ws://localhost:4000
+VITE_API_PORT=4000
+EOF
+        fi
+        echo -e "${YELLOW}⚠ ${label} .env template missing; generated defaults${NC}"
+    fi
+}
+
 echo -e "${CYAN}========================================${NC}"
 echo -e "${CYAN}  Online Quiz Assessment Platform${NC}"
 echo -e "${CYAN}  Docker-based Demo Setup${NC}"
@@ -19,7 +53,7 @@ echo -e "${CYAN}========================================${NC}"
 echo ""
 
 # Check Docker
-echo -e "${YELLOW}[1/4] Checking Docker...${NC}"
+echo -e "${YELLOW}[1/5] Checking Docker...${NC}"
 if command -v docker &> /dev/null; then
     DOCKER_VERSION=$(docker --version)
     echo -e "${GREEN}✓ Docker is installed: ${DOCKER_VERSION}${NC}"
@@ -61,8 +95,14 @@ else
 fi
 echo ""
 
+# Prepare environment files
+echo -e "${YELLOW}[2/5] Preparing environment files...${NC}"
+create_env_file "../backend" "Backend"
+create_env_file "../frontend" "Frontend"
+echo ""
+
 # Start Docker Compose services
-echo -e "${YELLOW}[2/4] Starting all services...${NC}"
+echo -e "${YELLOW}[3/5] Starting all services...${NC}"
 echo -e "${CYAN}  This will start MongoDB, Backend, and Frontend containers.${NC}"
 echo -e "${CYAN}  Please wait, this may take a few minutes on first run...${NC}"
 echo ""
@@ -85,14 +125,14 @@ fi
 echo ""
 
 # Wait for services to be ready
-echo -e "${YELLOW}[3/4] Waiting for services to be ready...${NC}"
+echo -e "${YELLOW}[4/5] Waiting for services to be ready...${NC}"
 echo -e "${CYAN}  Waiting 15 seconds for MongoDB and backend to initialize...${NC}"
 sleep 15
 echo -e "${GREEN}✓ Services should be ready${NC}"
 echo ""
 
 # Load Demo Data
-echo -e "${YELLOW}[4/4] Loading demo data...${NC}"
+echo -e "${YELLOW}[5/5] Loading demo data...${NC}"
 echo -e "${CYAN}  This will create sample users, quizzes, and results.${NC}"
 echo ""
 

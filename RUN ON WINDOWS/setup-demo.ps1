@@ -1,6 +1,46 @@
 ﻿# Online Quiz Assessment Platform - Docker Demo Setup
 # Automated setup script for Docker Compose deployment
 
+function Ensure-EnvFile {
+    param(
+        [string]$ServiceDir,
+        [string]$Label,
+        [string]$DefaultContent
+    )
+
+    $targetPath = Join-Path $ServiceDir ".env"
+    $examplePath = Join-Path $ServiceDir ".env.example"
+
+    if (Test-Path $targetPath) {
+        Write-Host " ✓ $Label .env already exists" -ForegroundColor Green
+    }
+    elseif (Test-Path $examplePath) {
+        Copy-Item $examplePath $targetPath
+        Write-Host " ✓ Created $Label .env from template" -ForegroundColor Green
+    }
+    else {
+        $DefaultContent | Set-Content -Path $targetPath -Encoding UTF8
+        Write-Host " ⚠ $Label template missing; generated defaults" -ForegroundColor Yellow
+    }
+}
+
+$backendDefaultEnv = @"
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb://mongo:27017/quiz-platform
+JWT_SECRET=supersecretjwt
+SESSION_SECRET=supersecretsession
+FRONTEND_URL=http://localhost:3000
+CLIENT_ORIGIN=http://localhost:3000
+LOG_LEVEL=info
+"@
+
+$frontendDefaultEnv = @"
+VITE_API_BASE_URL=http://localhost:4000
+VITE_WS_URL=ws://localhost:4000
+VITE_API_PORT=4000
+"@
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Online Quiz Assessment Platform" -ForegroundColor Cyan
 Write-Host "  Docker-based Demo Setup" -ForegroundColor Cyan
@@ -8,7 +48,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check Docker
-Write-Host "[1/4] Checking Docker..." -ForegroundColor Yellow
+Write-Host "[1/5] Checking Docker..." -ForegroundColor Yellow
 try {
     $dockerVersion = docker --version 2>$null
     if ($dockerVersion) {
@@ -26,12 +66,19 @@ try {
 
 Write-Host ""
 
+# Prepare environment files
+$projectRoot = (Get-Item "..").FullName
+Write-Host "[2/5] Preparing environment files..." -ForegroundColor Yellow
+Ensure-EnvFile -ServiceDir (Join-Path $projectRoot "backend") -Label "Backend" -DefaultContent $backendDefaultEnv
+Ensure-EnvFile -ServiceDir (Join-Path $projectRoot "frontend") -Label "Frontend" -DefaultContent $frontendDefaultEnv
+Write-Host "" 
+
 # Navigate to project root (parent directory)
 $originalPath = Get-Location
 Set-Location ..
 
 # Build and start services
-Write-Host "[2/4] Building and starting Docker containers..." -ForegroundColor Yellow
+Write-Host "[3/5] Building and starting Docker containers..." -ForegroundColor Yellow
 Write-Host "  This may take a few minutes on first run..." -ForegroundColor Gray
 
 try {
@@ -57,14 +104,14 @@ try {
 Write-Host ""
 
 # Wait for services to be ready
-Write-Host "[3/4] Waiting for services to be ready..." -ForegroundColor Yellow
+Write-Host "[4/5] Waiting for services to be ready..." -ForegroundColor Yellow
 Write-Host "  Waiting 15 seconds..." -ForegroundColor Gray
 Start-Sleep -Seconds 15
 Write-Host " Services should be ready" -ForegroundColor Green
 Write-Host ""
 
 # Load demo data
-Write-Host "[4/4] Loading demo data..." -ForegroundColor Yellow
+Write-Host "[5/5] Loading demo data..." -ForegroundColor Yellow
 try {
     docker-compose exec -T backend node src/utils/seedData.js
     if ($LASTEXITCODE -eq 0) {
