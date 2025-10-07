@@ -96,7 +96,7 @@ exports.gradeAnswer = async (req, res) => {
 exports.gradeWithRubric = async (req, res) => {
   try {
     const { resultId, questionId } = req.params;
-    const { rubricScores } = req.body;
+    const { rubricScores, feedback } = req.body;
 
     if (!rubricScores) {
       return res.status(400).json({
@@ -112,6 +112,7 @@ exports.gradeWithRubric = async (req, res) => {
       resultId,
       questionId,
       scoresMap,
+      feedback,
       req.user.id
     );
 

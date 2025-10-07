@@ -23,29 +23,46 @@ const ResultsPage = () => {
     }
   }, [dispatch, user, isAdmin, isInstructor, currentUserId]);
 
-  const displayResults = useMemo(() => {
+  const filteredResults = useMemo(() => {
     if (!Array.isArray(list)) return [];
 
+    const allowedStatuses = new Set(['submitted', 'completed']);
+
+    return list
+      .filter((result) => {
+        if (!allowedStatuses.size) return true;
+        const status = result?.status?.toLowerCase?.() || '';
+        return allowedStatuses.has(status);
+      })
+      .sort((a, b) => {
+        const getDate = (entry) => new Date(entry?.submittedAt || entry?.updatedAt || entry?.createdAt || 0).getTime();
+        return getDate(b) - getDate(a);
+      });
+  }, [list]);
+
+  const displayResults = useMemo(() => {
+    if (!Array.isArray(filteredResults)) return [];
+
     if (isAdmin) {
-      return list;
+      return filteredResults;
     }
 
     if (isInstructor) {
-      return list.filter((result) => {
+      return filteredResults.filter((result) => {
         const creatorId = getQuizCreatorId(result?.quiz);
         return currentUserId && creatorId === currentUserId;
       });
     }
 
     if (currentUserId) {
-      return list.filter((result) => {
+      return filteredResults.filter((result) => {
         const resultUserId = getResultUserId(result);
         return resultUserId === currentUserId;
       });
     }
 
-    return list;
-  }, [list, isAdmin, isInstructor, currentUserId]);
+    return filteredResults;
+  }, [filteredResults, isAdmin, isInstructor, currentUserId]);
 
   return (
     <section className="card">

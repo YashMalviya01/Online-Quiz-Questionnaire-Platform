@@ -3,15 +3,33 @@ const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
 
 const questionProjection =
-  'questionText questionType options correctAnswer codeLanguage starterCode evaluationNotes referenceSolution maxScore';
+  [
+    'questionText',
+    'questionType',
+    'options',
+    'correctAnswer',
+    'codeLanguage',
+    'starterCode',
+    'evaluationNotes',
+    'referenceSolution',
+    'maxScore',
+    'blankAnswers',
+    'caseSensitive',
+    'matchingPairs',
+    'wordLimit',
+    'rubric',
+    'sampleAnswer',
+    'allowedFileTypes',
+    'maxFileSize',
+    'partialCredit'
+  ].join(' ');
 
 const withQuestions = (query) =>
   query.populate({ path: 'questions', select: questionProjection }).populate({ path: 'createdBy', select: 'username email' });
 
 const prepareQuestionPayload = (question) => {
-  const type = question.questionType === 'code' ? 'code' : 'multiple-choice';
-  const parsedMaxScore = Number.parseFloat(question.maxScore);
-  const maxScore = Number.isFinite(parsedMaxScore) && parsedMaxScore > 0 ? parsedMaxScore : 1;
+  const type = question.questionType || 'multiple-choice';
+  const maxScore = resolveNumber(question.maxScore, 1);
   const base = {
     questionText: question.questionText?.trim() || '',
     questionType: type,
@@ -20,20 +38,113 @@ const prepareQuestionPayload = (question) => {
     referenceSolution: question.referenceSolution || ''
   };
 
-  if (type === 'code') {
-    return {
-      ...base,
-      codeLanguage: question.codeLanguage || 'javascript',
-      starterCode: question.starterCode || '',
-      correctAnswer: question.correctAnswer || ''
-    };
-  }
+  switch (type) {
+    case 'code':
+      return {
+        ...base,
+        codeLanguage: question.codeLanguage || 'javascript',
+        starterCode: question.starterCode || '',
+        correctAnswer: question.correctAnswer || '',
+        partialCredit: false,
+        options: []
+      };
 
-  return {
-    ...base,
-    options: (question.options || []).map((option) => `${option}`.trim()).filter(Boolean),
-    correctAnswer: `${question.correctAnswer || ''}`.trim()
-  };
+    case 'true-false': {
+      const normalizedAnswer = (question.correctAnswer === 'False' || question.correctAnswer === false)
+        ? 'False'
+        : 'True';
+      return {
+        ...base,
+        options: ['True', 'False'],
+        correctAnswer: normalizedAnswer,
+        partialCredit: false
+      };
+    }
+
+    case 'fill-in-blank': {
+      const blankAnswers = Array.isArray(question.blankAnswers)
+        ? question.blankAnswers.map((answer) => `${answer}`.trim()).filter(Boolean)
+        : [];
+      return {
+        ...base,
+        blankAnswers,
+        caseSensitive: Boolean(question.caseSensitive),
+        partialCredit: Boolean(question.partialCredit),
+        options: [],
+        correctAnswer: ''
+      };
+    }
+
+    case 'matching': {
+      const matchingPairs = Array.isArray(question.matchingPairs)
+        ? question.matchingPairs
+            .map((pair) => ({
+              left: pair?.left?.toString().trim() || '',
+              right: pair?.right?.toString().trim() || ''
+            }))
+            .filter((pair) => pair.left && pair.right)
+        : [];
+      return {
+        ...base,
+        matchingPairs,
+        partialCredit:
+          question.partialCredit !== undefined ? Boolean(question.partialCredit) : true,
+        options: [],
+        correctAnswer: ''
+      };
+    }
+
+    case 'essay':
+      return {
+        ...base,
+        wordLimit: resolveNumber(question.wordLimit, undefined),
+        rubric: question.rubric || '',
+        sampleAnswer: question.sampleAnswer || '',
+        partialCredit: false,
+        options: [],
+        correctAnswer: ''
+      };
+
+    case 'file-upload': {
+      const allowedFileTypes = Array.isArray(question.allowedFileTypes)
+        ? question.allowedFileTypes
+            .map((type) => type?.toString().trim().replace(/^[.]/, '').toLowerCase())
+            .filter(Boolean)
+        : [];
+      return {
+        ...base,
+        allowedFileTypes,
+        maxFileSize: resolveNumber(question.maxFileSize, 5),
+        partialCredit: false,
+        options: [],
+        correctAnswer: ''
+      };
+    }
+
+    case 'multiple-choice':
+    default: {
+      const options = Array.isArray(question.options)
+        ? question.options.map((option) => `${option}`.trim()).filter(Boolean)
+        : [];
+      const safeAnswer = options.includes(question.correctAnswer)
+        ? question.correctAnswer
+        : options[0] || '';
+      return {
+        ...base,
+        options,
+        correctAnswer: `${safeAnswer || ''}`.trim(),
+        partialCredit: false
+      };
+    }
+  }
+};
+
+const resolveNumber = (value, fallback) => {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
 };
 
 exports.getQuizzes = async (req, res, next) => {

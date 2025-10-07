@@ -1,11 +1,16 @@
 const { validationResult } = require('express-validator');
 const Result = require('../models/Result');
 const Quiz = require('../models/Quiz');
+const questionValidator = require('../services/questionValidatorService');
 
 const populateResult = (query) =>
   query
     .populate({ path: 'quiz', populate: { path: 'questions' } })
     .populate({ path: 'user', select: 'username email role' })
+    .populate({
+      path: 'answers.questionId',
+      select: 'questionText questionType maxScore options correctAnswer rubric referenceSolution'
+    })
     .populate({ path: 'proctoringLog', options: { sort: { timestamp: 1 } } });
 
 exports.getAllResults = async (req, res, next) => {
@@ -77,48 +82,207 @@ exports.submitExam = async (req, res, next) => {
     const answerMap = new Map((answers || []).map((entry) => [entry.questionId?.toString(), entry]));
     let autoScore = 0;
     let autoMaxScore = 0;
+    let totalMaxScore = 0;
+    let pointsEarned = 0;
     let requiresManualReview = false;
 
-    const formattedAnswers = quiz.questions.map((question) => {
+  const formattedAnswers = [];
+  const manualQuestionTypes = new Set(['code', 'essay', 'file-upload']);
+
+    for (const question of quiz.questions) {
       const key = question._id.toString();
       const provided = answerMap.get(key) || {};
       const questionType = question.questionType || 'multiple-choice';
-      const maxScore = Number.isFinite(question.maxScore) ? question.maxScore : 1;
+      const defaultMaxScore = Number.isFinite(question.maxScore) ? question.maxScore : 1;
 
-      if (questionType === 'multiple-choice') {
-        const selectedOption = provided.selectedOption || '';
-        const isCorrect = selectedOption && selectedOption === question.correctAnswer;
-        autoMaxScore += maxScore;
-        if (isCorrect) {
-          autoScore += maxScore;
-        }
-        return {
-          questionId: question._id,
-          questionType,
-          selectedOption,
-          textAnswer: '',
-          awardedScore: isCorrect ? maxScore : 0
-        };
-      }
-
-      const textAnswer = provided.textAnswer || '';
-      requiresManualReview = true;
-      autoMaxScore += maxScore;
-      return {
+      const baseAnswer = {
         questionId: question._id,
         questionType,
         selectedOption: '',
-        textAnswer,
-        awardedScore: 0
+        codeAnswer: '',
+        textAnswer: '',
+        blankAnswers: [],
+        matchingAnswers: [],
+        essayAnswer: '',
+        wordCount: 0,
+        uploadedFiles: []
       };
-    });
+
+      const validatorInput = {};
+
+      switch (questionType) {
+        case 'multiple-choice': {
+          const raw =
+            provided.selectedOption !== undefined
+              ? provided.selectedOption
+              : provided.answer !== undefined
+                ? provided.answer
+                : '';
+          const selectedOption = typeof raw === 'boolean' ? (raw ? 'True' : 'False') : String(raw || '').trim();
+          baseAnswer.selectedOption = selectedOption;
+          baseAnswer.textAnswer = selectedOption;
+          validatorInput.selectedOption = selectedOption;
+          break;
+        }
+
+        case 'true-false': {
+          const raw = provided.selectedOption ?? provided.answer ?? provided.textAnswer ?? '';
+          const selectedOption = typeof raw === 'boolean' ? (raw ? 'True' : 'False') : String(raw || '').trim();
+          baseAnswer.selectedOption = selectedOption;
+          baseAnswer.textAnswer = selectedOption;
+          validatorInput.selectedOption = raw;
+          break;
+        }
+
+        case 'code': {
+          const codeAnswer = typeof provided.codeAnswer === 'string'
+            ? provided.codeAnswer
+            : typeof provided.textAnswer === 'string'
+              ? provided.textAnswer
+              : '';
+          baseAnswer.codeAnswer = codeAnswer;
+          baseAnswer.textAnswer = codeAnswer;
+          validatorInput.codeAnswer = codeAnswer;
+          break;
+        }
+
+        case 'fill-in-blank': {
+          const expectedLength = Array.isArray(question.blankAnswers) ? question.blankAnswers.length : 0;
+          const blanks = Array.isArray(provided.blankAnswers)
+            ? provided.blankAnswers.map((entry) => (entry ?? '').toString().trim())
+            : [];
+          if (expectedLength > 0) {
+            while (blanks.length < expectedLength) blanks.push('');
+            if (blanks.length > expectedLength) blanks.splice(expectedLength);
+          }
+          baseAnswer.blankAnswers = blanks;
+          baseAnswer.textAnswer = blanks.filter(Boolean).join(' | ');
+          validatorInput.blankAnswers = blanks;
+          break;
+        }
+
+        case 'matching': {
+          const providedMatches = Array.isArray(provided.matchingAnswers)
+            ? provided.matchingAnswers.map((pair) => ({
+                left: (pair?.left ?? '').toString().trim(),
+                right: (pair?.right ?? '').toString().trim()
+              }))
+            : [];
+          const matchMap = new Map(providedMatches.map((pair) => [pair.left, pair.right]));
+          const normalizedMatches = Array.isArray(question.matchingPairs)
+            ? question.matchingPairs.map((pair) => ({
+                left: (pair?.left ?? '').toString(),
+                right: matchMap.get((pair?.left ?? '').toString()) || ''
+              }))
+            : providedMatches;
+          baseAnswer.matchingAnswers = normalizedMatches;
+          baseAnswer.textAnswer = normalizedMatches
+            .map((pair) => `${pair.left} → ${pair.right || '—'}`)
+            .join('; ');
+          validatorInput.matchingAnswers = normalizedMatches;
+          break;
+        }
+
+        case 'essay': {
+          const essayAnswer = typeof provided.essayAnswer === 'string'
+            ? provided.essayAnswer
+            : typeof provided.textAnswer === 'string'
+              ? provided.textAnswer
+              : '';
+          const trimmedEssay = essayAnswer.trim();
+          const wordCount = trimmedEssay ? trimmedEssay.split(/\s+/).filter(Boolean).length : 0;
+          baseAnswer.essayAnswer = essayAnswer;
+          baseAnswer.wordCount = wordCount;
+          baseAnswer.textAnswer = essayAnswer;
+          validatorInput.essayAnswer = essayAnswer;
+          break;
+        }
+
+        case 'file-upload': {
+          const uploadedFiles = Array.isArray(provided.uploadedFiles)
+            ? provided.uploadedFiles.map((file) => ({
+                filename: file.filename || file.name || 'uploaded-file',
+                fileUrl: file.fileUrl || '',
+                fileSize: (() => {
+                  const rawSize = file?.fileSize ?? file?.size;
+                  const numericSize = Number(rawSize);
+                  return Number.isFinite(numericSize) ? numericSize : 0;
+                })(),
+                fileType: file.fileType || file.type || '',
+                uploadedAt: file.uploadedAt ? new Date(file.uploadedAt) : new Date()
+              }))
+            : [];
+          baseAnswer.uploadedFiles = uploadedFiles;
+          baseAnswer.textAnswer = uploadedFiles.map((file) => file.filename).join(', ');
+          validatorInput.uploadedFiles = uploadedFiles;
+          break;
+        }
+
+        default: {
+          const textAnswer = typeof provided.textAnswer === 'string'
+            ? provided.textAnswer
+            : typeof provided.answer === 'string'
+              ? provided.answer
+              : '';
+          baseAnswer.textAnswer = textAnswer;
+          break;
+        }
+      }
+
+      let validation;
+      try {
+        validation = await questionValidator.validateAnswer(question, validatorInput);
+      } catch (err) {
+        validation = {
+          isValid: false,
+          needsGrading: true,
+          awardedScore: 0,
+          maxScore: defaultMaxScore
+        };
+      }
+
+      let needsGrading = validation?.needsGrading === true;
+      if (manualQuestionTypes.has(questionType)) {
+        needsGrading = true;
+      }
+      const isValid = validation?.isValid !== false;
+      const awardedScore = needsGrading || !isValid
+        ? 0
+        : Number.isFinite(validation?.awardedScore)
+          ? validation.awardedScore
+          : 0;
+      const resolvedMaxScore = Number.isFinite(validation?.maxScore)
+        ? validation.maxScore
+        : defaultMaxScore;
+      const isCorrect = !needsGrading && Boolean(validation?.isCorrect);
+
+      if (!needsGrading) {
+        autoScore += awardedScore;
+        autoMaxScore += resolvedMaxScore;
+      } else {
+        requiresManualReview = true;
+      }
+
+      totalMaxScore += resolvedMaxScore;
+      pointsEarned += awardedScore;
+
+      formattedAnswers.push({
+        ...baseAnswer,
+        awardedScore,
+        maxScore: resolvedMaxScore,
+        isCorrect,
+        needsGrading
+      });
+    }
 
     result.answers = formattedAnswers;
     result.autoScore = autoScore;
     result.autoMaxScore = autoMaxScore;
+    result.totalScore = totalMaxScore;
+    result.pointsEarned = pointsEarned;
     result.requiresManualReview = requiresManualReview;
-    result.score = autoMaxScore > 0 ? Math.round((autoScore / autoMaxScore) * 100) : 0;
-    result.status = 'submitted';
+    result.score = totalMaxScore > 0 ? Math.round((pointsEarned / totalMaxScore) * 100) : 0;
+    result.status = requiresManualReview ? 'submitted' : 'completed';
     result.submittedAt = new Date();
     await result.save();
 

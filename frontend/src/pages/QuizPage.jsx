@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProctoringWrapper from '../components/ProctoringWrapper.jsx';
@@ -233,13 +233,174 @@ const QuizPage = () => {
 
   const questions = useMemo(() => quiz?.questions ?? [], [quiz]);
   const currentQuestion = questions[currentIndex];
+  const currentResponse = currentQuestion ? answers[currentQuestion._id] || {} : {};
 
-  const handleSelect = (questionId, option) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: option }));
-  };
+  useEffect(() => {
+    if (quiz?._id) {
+      setAnswers({});
+      setCurrentIndex(0);
+    }
+  }, [quiz?._id]);
+
+  const isQuestionAnswered = useCallback((question, response) => {
+    if (!question) return false;
+    const value = response || {};
+
+    switch (question.questionType) {
+      case 'multiple-choice':
+      case 'true-false':
+        return Boolean(value.selectedOption);
+      case 'code':
+        return Boolean(value.codeAnswer && value.codeAnswer.trim());
+      case 'fill-in-blank': {
+        const totalBlanks = question.blankAnswers?.length || 1;
+        const blanks = Array.isArray(value.blankAnswers) ? value.blankAnswers : [];
+        if (blanks.length < totalBlanks) return false;
+        return blanks.every((answer) => typeof answer === 'string' && answer.trim());
+      }
+      case 'matching': {
+        const requiredMatches = question.matchingPairs?.length || 0;
+        const matches = Array.isArray(value.matchingAnswers) ? value.matchingAnswers : [];
+        if (matches.length < requiredMatches) return false;
+        return question.matchingPairs.every((pair) => {
+          const userPair = matches.find((entry) => entry.left === pair.left);
+          return userPair && userPair.right;
+        });
+      }
+      case 'essay':
+        return Boolean(value.essayAnswer && value.essayAnswer.trim());
+      case 'file-upload':
+        return Array.isArray(value.uploadedFiles) && value.uploadedFiles.length > 0;
+      default:
+        return Boolean(value.selectedOption);
+    }
+  }, []);
+
+  const { answeredCount, unansweredCount } = useMemo(() => {
+    const answered = questions.reduce((count, question) => {
+      const response = answers[question._id];
+      return isQuestionAnswered(question, response) ? count + 1 : count;
+    }, 0);
+
+    return {
+      answeredCount: answered,
+      unansweredCount: Math.max(questions.length - answered, 0)
+    };
+  }, [questions, answers, isQuestionAnswered]);
+
+  // Ensure currentIndex is valid for the available questions
+  useEffect(() => {
+    if (questions.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+
+    setCurrentIndex((prev) => {
+      if (prev >= questions.length) {
+        return questions.length - 1;
+      }
+      if (prev < 0) {
+        return 0;
+      }
+      return prev;
+    });
+  }, [questions.length]);
+
+  const updateAnswer = useCallback((questionId, updater) => {
+    setAnswers((prev) => {
+      const current = prev[questionId] || {};
+      const next = updater(current) || {};
+      return {
+        ...prev,
+        [questionId]: next
+      };
+    });
+  }, []);
+
+  const handleSelectOption = useCallback(
+    (questionId, option) => {
+      updateAnswer(questionId, (current) => ({
+        ...current,
+        selectedOption: option
+      }));
+    },
+    [updateAnswer]
+  );
+
+  const handleCodeChange = useCallback(
+    (questionId, code) => {
+      updateAnswer(questionId, (current) => ({
+        ...current,
+        codeAnswer: code
+      }));
+    },
+    [updateAnswer]
+  );
+
+  const handleBlankChange = useCallback(
+    (questionId, blankIndex, value, totalBlanks) => {
+      updateAnswer(questionId, (current) => {
+        const blanks = Array.from({ length: totalBlanks }, (_, idx) => current.blankAnswers?.[idx] || '');
+        blanks[blankIndex] = value;
+        return {
+          ...current,
+          blankAnswers: blanks
+        };
+      });
+    },
+    [updateAnswer]
+  );
+
+  const handleMatchingChange = useCallback(
+    (questionId, leftPrompt, value) => {
+      updateAnswer(questionId, (current) => {
+        const matches = Array.isArray(current.matchingAnswers) ? [...current.matchingAnswers] : [];
+        const existingIndex = matches.findIndex((pair) => pair.left === leftPrompt);
+        const nextPair = { left: leftPrompt, right: value };
+        if (existingIndex >= 0) {
+          matches[existingIndex] = nextPair;
+        } else {
+          matches.push(nextPair);
+        }
+        return {
+          ...current,
+          matchingAnswers: matches
+        };
+      });
+    },
+    [updateAnswer]
+  );
+
+  const handleEssayChange = useCallback(
+    (questionId, value) => {
+      updateAnswer(questionId, (current) => ({
+        ...current,
+        essayAnswer: value
+      }));
+    },
+    [updateAnswer]
+  );
+
+  const handleFileUpload = useCallback(
+    (questionId, fileList) => {
+      const summaries = Array.from(fileList || []).map((file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type
+      }));
+      updateAnswer(questionId, (current) => ({
+        ...current,
+        uploadedFiles: summaries
+      }));
+    },
+    [updateAnswer]
+  );
 
   const goNext = () => {
-    setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1));
+    setCurrentIndex((prev) => {
+      const lastIndex = Math.max(questions.length - 1, 0);
+      return Math.min(prev + 1, lastIndex);
+    });
   };
 
   const goBack = () => {
@@ -249,21 +410,98 @@ const QuizPage = () => {
   const handleSubmit = async () => {
     if (!result || !quiz) return;
     setSubmitting(true);
-    const answerArray = questions.map((q) => ({
-      questionId: q._id,
-      selectedOption: answers[q._id] || ''
-    }));
-    const score = questions.reduce(
-      (acc, q) => (answers[q._id] && answers[q._id] === q.correctAnswer ? acc + 1 : acc),
-      0
+
+    const submission = questions.reduce(
+      (acc, question) => {
+        const response = answers[question._id] || {};
+        const entry = { questionId: question._id };
+        const maxScore = Number(question.maxScore) > 0 ? Number(question.maxScore) : 1;
+
+        switch (question.questionType) {
+          case 'multiple-choice':
+            entry.selectedOption = response.selectedOption || '';
+            if (entry.selectedOption) {
+              const normalized = `${entry.selectedOption}`.trim().toLowerCase();
+              const normalizedCorrect = `${question.correctAnswer || ''}`.trim().toLowerCase();
+              if (normalized && normalized === normalizedCorrect) {
+                acc.score += maxScore;
+              }
+            }
+            acc.maxScore += maxScore;
+            break;
+          case 'true-false': {
+            const selected = response.selectedOption ?? '';
+            entry.selectedOption = selected;
+            if (selected !== '') {
+              const normalized = `${selected}`.trim().toLowerCase();
+              const normalizedCorrect = `${question.correctAnswer || ''}`.trim().toLowerCase();
+              if (normalized && normalized === normalizedCorrect) {
+                acc.score += maxScore;
+              }
+            }
+            acc.maxScore += maxScore;
+            break;
+          }
+          case 'code': {
+            const codeAnswer = response.codeAnswer || '';
+            entry.textAnswer = codeAnswer;
+            entry.codeAnswer = codeAnswer;
+            acc.maxScore += maxScore;
+            break;
+          }
+          case 'fill-in-blank': {
+            const blanks = Array.isArray(response.blankAnswers)
+              ? response.blankAnswers
+              : Array.from({ length: question.blankAnswers?.length || 1 }, () => '');
+            entry.blankAnswers = blanks;
+            entry.textAnswer = blanks.join(' || ');
+            entry.partialCredit = Boolean(question.partialCredit);
+            acc.maxScore += maxScore;
+            break;
+          }
+          case 'matching': {
+            const matches = Array.isArray(response.matchingAnswers) ? response.matchingAnswers : [];
+            entry.matchingAnswers = matches;
+            entry.textAnswer = matches
+              .filter((pair) => pair && pair.left && pair.right)
+              .map((pair) => `${pair.left} → ${pair.right}`)
+              .join(' | ');
+            entry.partialCredit = Boolean(question.partialCredit);
+            acc.maxScore += maxScore;
+            break;
+          }
+          case 'essay': {
+            const essayAnswer = response.essayAnswer || '';
+            entry.essayAnswer = essayAnswer;
+            entry.textAnswer = essayAnswer;
+            acc.maxScore += maxScore;
+            break;
+          }
+          case 'file-upload': {
+            const uploads = Array.isArray(response.uploadedFiles) ? response.uploadedFiles : [];
+            entry.uploadedFiles = uploads;
+            entry.textAnswer = uploads.map((file) => file.name).join(', ');
+            entry.maxFileSize = question.maxFileSize;
+            acc.maxScore += maxScore;
+            break;
+          }
+          default:
+            entry.selectedOption = response.selectedOption || '';
+            acc.maxScore += maxScore;
+        }
+
+        acc.answers.push(entry);
+        return acc;
+      },
+      { answers: [], score: 0, maxScore: 0 }
     );
 
     try {
       await dispatch(
         submitExam({
           resultId: result._id,
-          answers: answerArray,
-          score
+          answers: submission.answers,
+          score: submission.score
         })
       ).unwrap();
       navigate(`/results/${result._id}`);
@@ -275,6 +513,19 @@ const QuizPage = () => {
       setSubmitting(false);
     }
   };
+
+  const formatFileSize = useCallback((bytes) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+      return '';
+    }
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${bytes} B`;
+  }, []);
 
   if (quizStatus === 'loading' || !quiz) {
     return <p>Loading quiz…</p>;
@@ -479,23 +730,12 @@ const QuizPage = () => {
     );
   }
 
-  if (!result || !user?.faceDescriptor) {
+  if (!result) {
     return <p>Preparing your proctoring session…</p>;
   }
 
-  const answeredCount = Object.keys(answers).length;
-  const unansweredCount = questions.length - answeredCount;
-
-  // Ensure currentIndex is valid
-  if (currentIndex >= questions.length) {
-    setCurrentIndex(questions.length - 1);
-  }
-  if (currentIndex < 0) {
-    setCurrentIndex(0);
-  }
-
   return (
-    <ProctoringWrapper resultId={result._id} faceDescriptor={user.faceDescriptor} quizId={quiz._id}>
+    <ProctoringWrapper resultId={result._id} faceDescriptor={user?.faceDescriptor} quizId={quiz._id}>
       <section className="card" style={{ minHeight: '500px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h1>{quiz.title}</h1>
@@ -504,6 +744,30 @@ const QuizPage = () => {
           </span>
         </div>
         <p style={{ color: '#64748b', marginBottom: '1rem' }}>{quiz.description}</p>
+
+        {user?.role === 'student' && !user?.hasReferenceFace && (
+          <div
+            style={{
+              marginBottom: '1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(148, 163, 184, 0.45)',
+              background: '#f8fafc',
+              color: '#0f172a',
+              display: 'flex',
+              gap: '0.75rem',
+              alignItems: 'flex-start'
+            }}
+          >
+            <AlertTriangle size={18} style={{ flexShrink: 0, color: '#d97706', marginTop: '0.15rem' }} />
+            <div>
+              <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Limited proctoring in effect</strong>
+              <span style={{ color: '#475569' }}>
+                We couldn't find a reference photo for you, so facial matching is disabled for this attempt. Visit your profile to enrol a reference face and unlock full proctoring protection.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Timer, Expiry, and Attempts Info */}
         <div style={{ 
@@ -608,25 +872,28 @@ const QuizPage = () => {
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Question Navigation:</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {questions.map((q, idx) => (
-              <button
-                key={q._id}
-                type="button"
-                onClick={() => setCurrentIndex(idx)}
-                style={{
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '6px',
-                  border: currentIndex === idx ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                  background: answers[q._id] ? '#10b98133' : '#ffffff',
-                  color: currentIndex === idx ? '#2563eb' : '#0f172a',
-                  cursor: 'pointer',
-                  fontWeight: currentIndex === idx ? '600' : '400',
-                  minWidth: '40px'
-                }}
-              >
-                {idx + 1}
-              </button>
-            ))}
+            {questions.map((q, idx) => {
+              const answered = isQuestionAnswered(q, answers[q._id]);
+              return (
+                <button
+                  key={q._id}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '6px',
+                    border: currentIndex === idx ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                    background: answered ? '#10b98133' : '#ffffff',
+                    color: currentIndex === idx ? '#2563eb' : '#0f172a',
+                    cursor: 'pointer',
+                    fontWeight: currentIndex === idx ? '600' : '400',
+                    minWidth: '40px'
+                  }}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -640,7 +907,7 @@ const QuizPage = () => {
               <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
                 {currentQuestion.options && currentQuestion.options.length > 0 ? (
                   currentQuestion.options.map((option, optIdx) => {
-                    const checked = answers[currentQuestion._id] === option;
+                    const checked = currentResponse.selectedOption === option;
                     return (
                       <label
                         key={`${currentQuestion._id}-${optIdx}`}
@@ -658,7 +925,7 @@ const QuizPage = () => {
                           name={currentQuestion._id}
                           value={option}
                           checked={checked}
-                          onChange={() => handleSelect(currentQuestion._id, option)}
+                          onChange={() => handleSelectOption(currentQuestion._id, option)}
                           style={{ marginRight: '0.75rem' }}
                         />
                         <span style={{ color: '#0f172a' }}>{option}</span>
@@ -668,6 +935,40 @@ const QuizPage = () => {
                 ) : (
                   <p style={{ color: '#ef4444' }}>No options available for this question.</p>
                 )}
+              </div>
+            )}
+
+            {/* True / False Question */}
+            {currentQuestion.questionType === 'true-false' && (
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                {['True', 'False'].map((option) => {
+                  const checked = currentResponse.selectedOption === option;
+                  return (
+                    <label
+                      key={`${currentQuestion._id}-${option}`}
+                      style={{
+                        padding: '0.9rem 1rem',
+                        borderRadius: '10px',
+                        border: checked ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                        cursor: 'pointer',
+                        background: checked ? '#eff6ff' : '#ffffff',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name={currentQuestion._id}
+                        value={option}
+                        checked={checked}
+                        onChange={() => handleSelectOption(currentQuestion._id, option)}
+                        style={{ marginRight: '0.75rem' }}
+                      />
+                      <span style={{ color: '#0f172a' }}>{option}</span>
+                    </label>
+                  );
+                })}
               </div>
             )}
 
@@ -691,13 +992,200 @@ const QuizPage = () => {
                   )}
                 </div>
                 <CodeEditor
-                  initialCode={answers[currentQuestion._id] || currentQuestion.starterCode || ''}
+                  initialCode={currentResponse.codeAnswer ?? currentQuestion.starterCode ?? ''}
                   language={currentQuestion.codeLanguage || 'javascript'}
-                  onCodeChange={(code) => handleSelect(currentQuestion._id, code)}
+                  onCodeChange={(code) => handleCodeChange(currentQuestion._id, code)}
                   height="400px"
                   showToolbar={false}
                   allowLanguageChange={false}
                 />
+              </div>
+            )}
+
+            {/* Fill in the Blank Question */}
+            {currentQuestion.questionType === 'fill-in-blank' && (() => {
+              const blankCount = currentQuestion.blankAnswers?.length || 1;
+              const answersForBlanks = Array.from({ length: blankCount }, (_, idx) => currentResponse.blankAnswers?.[idx] || '');
+
+              return (
+                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {answersForBlanks.map((value, blankIdx) => (
+                    <div key={`${currentQuestion._id}-blank-${blankIdx}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <label style={{ fontWeight: 600, color: '#0f172a' }}>Blank {blankIdx + 1}</label>
+                      <input
+                        value={value}
+                        onChange={(event) => handleBlankChange(currentQuestion._id, blankIdx, event.target.value, blankCount)}
+                        placeholder={`Enter response for blank ${blankIdx + 1}`}
+                        style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+                  ))}
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <span>
+                      {currentQuestion.caseSensitive
+                        ? 'Answers are case sensitive.'
+                        : 'Answers are not case sensitive.'}
+                    </span>
+                    {currentQuestion.partialCredit && (
+                      <span>Partial credit is available for partially correct responses.</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Matching Question */}
+            {currentQuestion.questionType === 'matching' && (() => {
+              const rightOptions = Array.from(
+                new Set((currentQuestion.matchingPairs || []).map((pair) => pair?.right).filter(Boolean))
+              );
+              const matches = Array.isArray(currentResponse.matchingAnswers) ? currentResponse.matchingAnswers : [];
+
+              return (
+                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {currentQuestion.matchingPairs?.map((pair, pairIdx) => {
+                    const selected = matches.find((entry) => entry.left === pair.left)?.right || '';
+                    return (
+                      <div
+                        key={`${currentQuestion._id}-match-${pairIdx}`}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(160px, 1fr) minmax(200px, 2fr)',
+                          gap: '1rem',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          background: '#f8fafc',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          color: '#0f172a'
+                        }}>
+                          {pair.left}
+                        </div>
+                        <select
+                          aria-label={`Match for ${pair.left}`}
+                          value={selected}
+                          onChange={(event) => handleMatchingChange(currentQuestion._id, pair.left, event.target.value)}
+                          style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                        >
+                          <option value="">Select the matching answer</option>
+                          {rightOptions.map((option) => (
+                            <option key={`${currentQuestion._id}-target-${option}`} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                  {currentQuestion.partialCredit && (
+                    <small style={{ color: '#64748b' }}>Partial credit may be awarded for partially correct matches.</small>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Essay Question */}
+            {currentQuestion.questionType === 'essay' && (
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {currentQuestion.wordLimit && (
+                  <span style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                    Word limit: {currentQuestion.wordLimit} words
+                  </span>
+                )}
+                <textarea
+                  rows={currentQuestion.wordLimit && currentQuestion.wordLimit <= 200 ? 8 : 10}
+                  value={currentResponse.essayAnswer || ''}
+                  onChange={(event) => handleEssayChange(currentQuestion._id, event.target.value)}
+                  placeholder="Write your response here..."
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    minHeight: '200px',
+                    lineHeight: 1.5
+                  }}
+                />
+                {currentQuestion.rubric && (
+                  <div style={{ fontSize: '0.85rem', color: '#475569' }}>
+                    <strong>Focus on:</strong> {currentQuestion.rubric}
+                  </div>
+                )}
+                {currentQuestion.sampleAnswer && (
+                  <details style={{ fontSize: '0.85rem', color: '#475569' }}>
+                    <summary style={{ cursor: 'pointer' }}>View instructor sample answer</summary>
+                    <p style={{ marginTop: '0.5rem' }}>{currentQuestion.sampleAnswer}</p>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {/* File Upload Question */}
+            {currentQuestion.questionType === 'file-upload' && (
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div>
+                  <label
+                    htmlFor={`${currentQuestion._id}-file-upload`}
+                    style={{ fontWeight: 600, color: '#0f172a', display: 'block', marginBottom: '0.35rem' }}
+                  >
+                    Upload supporting files
+                  </label>
+                  <input
+                    id={`${currentQuestion._id}-file-upload`}
+                    type="file"
+                    multiple
+                    accept={(currentQuestion.allowedFileTypes || []).map((ext) => `.${ext}`).join(',') || undefined}
+                    onChange={(event) => {
+                      handleFileUpload(currentQuestion._id, event.target.files);
+                      event.target.value = '';
+                    }}
+                  />
+                  <small style={{ display: 'block', marginTop: '0.35rem', color: '#64748b' }}>
+                    {currentQuestion.allowedFileTypes && currentQuestion.allowedFileTypes.length
+                      ? `Allowed types: ${currentQuestion.allowedFileTypes.join(', ')}`
+                      : 'All file types allowed'}
+                    {currentQuestion.maxFileSize &&
+                      ` • Max size: ${currentQuestion.maxFileSize} MB per file`}
+                  </small>
+                </div>
+                {Array.isArray(currentResponse.uploadedFiles) && currentResponse.uploadedFiles.length > 0 ? (
+                  <ul style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    {currentResponse.uploadedFiles.map((file, idx) => (
+                      <li
+                        key={`${currentQuestion._id}-file-${idx}`}
+                        style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          background: '#f8fafc',
+                          color: '#0f172a',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: '1rem'
+                        }}
+                      >
+                        <span>{file.name}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{formatFileSize(file.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                    No files selected yet. Attach your work before submitting.
+                  </p>
+                )}
+                <small style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                  Files are stored for manual review. Large uploads may take additional time to process.
+                </small>
               </div>
             )}
           </article>

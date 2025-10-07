@@ -29,7 +29,7 @@ exports.createProctoringEvent = async (req, res) => {
       });
     }
 
-    if (result.student.toString() !== req.user.id) {
+  if (result.user.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'

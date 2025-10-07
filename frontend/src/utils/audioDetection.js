@@ -12,33 +12,38 @@ class AudioDetection {
     this.startTime = null;
     this.lastAlertTime = 0;
     this.suspiciousAudioCount = 0;
+    this.debugEnabled = typeof import.meta !== 'undefined' && import.meta.env && Boolean(import.meta.env.DEV);
     
     // Speech detection state
-  this.speechHistory = [];
-  this.backgroundNoiseLevel = 0;
-  this.lastSpeechTime = null;
-  this.consecutiveSpeechFrames = 0;
-  this.silenceFrames = 0;
-  this.lastPatternAlertTime = 0;
-  this.lastVolumeFluctuationAlertTime = 0;
-  this.lastPatternAnalysisTime = 0;
+    this.speechHistory = [];
+    this.backgroundNoiseLevel = 0;
+    this.lastSpeechTime = null;
+    this.consecutiveSpeechFrames = 0;
+    this.silenceFrames = 0;
+    this.lastPatternAlertTime = 0;
+    this.lastVolumeFluctuationAlertTime = 0;
+    this.lastPatternAnalysisTime = 0;
     
     // Thresholds (adjusted for Float32Array which has smaller values)
     // Current levels observed: RMS=0.0003, VoiceEnergy=0-2.5
     this.thresholds = {
-      speechThreshold: 0.0002,      // Amplitude threshold for speech (adjusted to current mic levels)
+      speechThreshold: 0.00025,      // Amplitude threshold for speech (adjusted to current mic levels)
       backgroundNoiseMax: 0.0002,   // Max acceptable background level
       multipleSpeakersThreshold: 0.15, // Frequency variation indicating multiple voices
       whisperDetectionThreshold: 0.0001, // Very low volume speech
       minSpeechDuration: 500,       // ms - minimum to consider as speech
       frequencyRangeHuman: [85, 255], // Hz - human voice range (simplified)
       suspiciousPatternWindow: 5000, // ms - window to analyze patterns
-      warmupPeriod: 5000,           // 5 seconds warmup before alerting (reduced for testing)
-      minSuspiciousDetections: 2,   // Need 2 detections before alerting (reduced for testing)
-      alertCooldown: 10000,         // 10 seconds between alerts
-      patternAlertCooldown: 30000,  // 30 seconds between pattern alerts
-      volumeFluctuationCooldown: 15000, // 15 seconds between volume fluctuation alerts
-      patternAnalysisInterval: 1000 // Only analyze patterns once per second
+      warmupPeriod: 8000,           // 8 seconds warmup before alerting
+      minSuspiciousDetections: 4,   // Need multiple detections before alerting
+      alertCooldown: 15000,         // 15 seconds between alerts
+      patternAlertCooldown: 60000,  // 60 seconds between pattern alerts
+      volumeFluctuationCooldown: 30000, // 30 seconds between volume fluctuation alerts
+      patternAnalysisInterval: 2000, // Only analyze patterns every 2 seconds
+      minPatternIntervals: 6,
+      patternVarianceThreshold: 50000,
+      patternAvgIntervalMax: 1800,
+      volumeFluctuationSensitivity: 0.03
     };
   }
 
@@ -77,7 +82,9 @@ class AudioDetection {
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
       
-      console.log('🎤 Advanced Audio Detection initialized with 10x gain boost (+20dB) [0.1% output volume]');
+      if (this.debugEnabled) {
+        console.log('🎤 Advanced Audio Detection initialized with 10x gain boost (+20dB) [0.1% output volume]');
+      }
       return true;
     } catch (error) {
       console.error('Failed to initialize audio detection:', error);
@@ -90,7 +97,9 @@ class AudioDetection {
     
     this.isListening = true;
     this.analyzeAudio();
-    console.log('🎤 Audio monitoring started');
+    if (this.debugEnabled) {
+      console.log('🎤 Audio monitoring started');
+    }
   }
 
   stopListening() {
@@ -98,7 +107,9 @@ class AudioDetection {
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
     }
-    console.log('🎤 Audio monitoring stopped');
+    if (this.debugEnabled) {
+      console.log('🎤 Audio monitoring stopped');
+    }
   }
 
   analyzeAudio() {
@@ -121,7 +132,9 @@ class AudioDetection {
     
     // Log once when warmup completes
     if (this.startTime && (now - this.startTime) >= this.thresholds.warmupPeriod && (now - this.startTime) < (this.thresholds.warmupPeriod + 100)) {
-      console.log('🎤 Audio detection warmup complete - now actively monitoring');
+      if (this.debugEnabled) {
+        console.log('🎤 Audio detection warmup complete - now actively monitoring');
+      }
     }
     
     // 1. Detect speech vs silence
@@ -204,7 +217,7 @@ class AudioDetection {
     const isSpeech = rms > this.thresholds.speechThreshold && voiceEnergy > 30;
 
     // Debug logging every 60 frames (~1 second)
-    if (Math.random() < 0.016) {
+    if (this.debugEnabled && Math.random() < 0.002) {
       console.log(`🎤 Audio levels: RMS=${rms.toFixed(4)}, VoiceEnergy=${voiceEnergy.toFixed(1)}, IsSpeech=${isSpeech}`);
     }
 
@@ -319,14 +332,14 @@ class AudioDetection {
       }
     }
 
-    if (intervals.length > 3) {
+    if (intervals.length >= this.thresholds.minPatternIntervals) {
       // Check for regular pattern (suspicious)
       const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
       const variance = intervals.reduce((sum, val) => 
         sum + Math.pow(val - avgInterval, 2), 0) / intervals.length;
       
       // Low variance = regular pattern = suspicious
-      if (variance < 100000 && avgInterval < 1500 &&
+      if (variance < this.thresholds.patternVarianceThreshold && avgInterval < this.thresholds.patternAvgIntervalMax &&
           (now - this.lastPatternAlertTime) > this.thresholds.patternAlertCooldown) {
         this.triggerAlert('SUSPICIOUS_SPEECH_PATTERN', 'high', {
           pattern: 'regular_intervals',
@@ -345,7 +358,7 @@ class AudioDetection {
     }
 
     const avgVolumeChange = volumeChanges.reduce((a, b) => a + b, 0) / volumeChanges.length;
-    if (avgVolumeChange > 0.01 &&
+  if (avgVolumeChange > this.thresholds.volumeFluctuationSensitivity &&
         (now - this.lastVolumeFluctuationAlertTime) > this.thresholds.volumeFluctuationCooldown) {
       this.triggerAlert('VOLUME_FLUCTUATION', 'medium', {
         change: avgVolumeChange.toFixed(4),
@@ -367,7 +380,9 @@ class AudioDetection {
         warningLevel: this.calculateWarningLevel(severity)
       });
     }
-    console.warn('🎤 Audio Alert:', type, data);
+    if (this.debugEnabled) {
+      console.warn('🎤 Audio Alert:', type, data);
+    }
   }
 
   calculateWarningLevel(severity) {

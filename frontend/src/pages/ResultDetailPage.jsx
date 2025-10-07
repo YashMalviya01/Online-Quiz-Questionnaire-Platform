@@ -45,7 +45,17 @@ const ResultDetailPage = () => {
   }
 
   const totalQuestions = current.quiz?.questions?.length || 0;
-  
+  const totalPointsPossible = Number.isFinite(current.totalScore)
+    ? current.totalScore
+    : Number.isFinite(current.autoMaxScore)
+      ? current.autoMaxScore
+      : totalQuestions;
+  const pointsEarned = Number.isFinite(current.pointsEarned)
+    ? current.pointsEarned
+    : Number.isFinite(current.autoScore)
+      ? current.autoScore
+      : 0;
+
   // Count correct answers based on awardedScore/pointsAwarded
   const correctAnswers = (current.answers || []).filter(answer => {
     if (answer.isCorrect !== undefined) return answer.isCorrect;
@@ -57,7 +67,12 @@ const ResultDetailPage = () => {
     return userAnswer && userAnswer === question?.correctAnswer;
   }).length;
   
-  const scorePercentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+  const scorePercentage = Number.isFinite(current.score)
+    ? Math.round(current.score)
+    : (totalPointsPossible > 0 ? Math.round((pointsEarned / totalPointsPossible) * 100) : 0);
+
+  const roundedPointsEarned = Math.round(pointsEarned * 100) / 100;
+  const roundedTotalPoints = Math.round((totalPointsPossible || 0) * 100) / 100;
 
   return (
     <section className="card">
@@ -68,7 +83,7 @@ const ResultDetailPage = () => {
           {scorePercentage}%
         </div>
         <p style={{ color: '#64748b', fontSize: '1.125rem' }}>
-          Score: {correctAnswers} out of {totalQuestions} questions correct
+          Score: {roundedPointsEarned} / {roundedTotalPoints} pts · {correctAnswers} of {totalQuestions} questions correct
         </p>
       </div>
 

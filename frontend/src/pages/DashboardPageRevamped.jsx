@@ -24,15 +24,21 @@ const DashboardPageRevamped = () => {
   const isAdmin = user?.role === 'admin';
   const isInstructor = user?.role === 'instructor';
   const currentUserId = useMemo(() => getUserId(user), [user]);
+  const isDebug = import.meta.env?.DEV;
+  const debugLog = (...args) => {
+    if (isDebug) {
+      console.log(...args);
+    }
+  };
 
   // Calculate stats for students - for students, results already contains only their results
   const myResults = useMemo(() => {
-    console.log('[Dashboard myResults] Raw results:', results);
-    console.log('[Dashboard myResults] User:', user);
-    console.log('[Dashboard myResults] Results length:', results?.length);
+    debugLog('[Dashboard myResults] Raw results:', results);
+    debugLog('[Dashboard myResults] User:', user);
+    debugLog('[Dashboard myResults] Results length:', results?.length);
     
     if (!user || user.role !== 'student' || !currentUserId) {
-      console.log('[Dashboard myResults] No user, returning empty');
+      debugLog('[Dashboard myResults] No user, returning empty');
       return [];
     }
     
@@ -41,12 +47,12 @@ const DashboardPageRevamped = () => {
       const resultUserId = getResultUserId(r);
       const include = Boolean(resultUserId && resultUserId === currentUserId);
       if (include) {
-        console.log('[Dashboard myResults] Checking result:', r._id, 'status:', r.status);
+        debugLog('[Dashboard myResults] Checking result:', r._id, 'status:', r.status);
       }
       return include && (r.status === 'submitted' || r.status === 'completed');
     });
     
-    console.log('[Dashboard myResults] Filtered results:', filtered.length, filtered);
+    debugLog('[Dashboard myResults] Filtered results:', filtered.length, filtered);
     return filtered;
   }, [results, user, currentUserId]);
 
@@ -96,7 +102,7 @@ const DashboardPageRevamped = () => {
         ? Math.round((scoredResults.reduce((sum, res) => sum + res.score, 0) / scoredResults.length) * 10) / 10
         : null;
 
-      console.log('[Dashboard Stats] Admin:', {
+      debugLog('[Dashboard Stats] Admin:', {
         totalSubmissions,
         scoredResults: scoredResults.length,
         averageScore,
@@ -128,7 +134,7 @@ const DashboardPageRevamped = () => {
         ? Math.round((scoredResults.reduce((sum, res) => sum + res.score, 0) / scoredResults.length) * 10) / 10
         : null;
 
-      console.log('[Dashboard Stats] Instructor:', {
+      debugLog('[Dashboard Stats] Instructor:', {
         instructorQuizCount: instructorQuizzes.length,
         instructorResultsCount: instructorResults.length,
         averageScore,
@@ -150,7 +156,7 @@ const DashboardPageRevamped = () => {
         ? Math.round((scoredResults.reduce((sum, res) => sum + res.score, 0) / scoredResults.length) * 10) / 10
         : null;
 
-      console.log('[Dashboard Stats] Student:', {
+      debugLog('[Dashboard Stats] Student:', {
         myResultsCount: myResults.length,
         scoredResults: scoredResults.length,
         averageScore,
@@ -406,12 +412,12 @@ const DashboardPageRevamped = () => {
     dispatch(fetchQuizzes());
     if (isAdmin || isInstructor) {
       dispatch(fetchAllResults()).then((result) => {
-        console.log('[Dashboard] Admin/Instructor results fetched:', result.payload?.length || 0);
+        debugLog('[Dashboard] Admin/Instructor results fetched:', result.payload?.length || 0);
       });
     } else if (currentUserId) {
       // Fetch results for current student user - backend returns 'id' not '_id'
       dispatch(fetchResultsForUser(currentUserId)).then((result) => {
-        console.log('[Dashboard] Student results fetched:', result.payload?.length || 0);
+        debugLog('[Dashboard] Student results fetched:', result.payload?.length || 0);
       });
     }
   }, [dispatch, user, isAdmin, isInstructor, currentUserId]);

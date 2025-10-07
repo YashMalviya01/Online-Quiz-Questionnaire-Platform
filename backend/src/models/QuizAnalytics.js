@@ -222,12 +222,33 @@ const quizAnalyticsSchema = new mongoose.Schema(
 quizAnalyticsSchema.methods.recalculate = async function() {
   const Result = mongoose.model('Result');
   const Question = mongoose.model('Question');
-  
-  // Get all results for this quiz
-  const results = await Result.find({ 
+
+  const getStudentName = (user) => {
+    if (!user) return 'Unknown Student';
+    const first = user.firstName || '';
+    const last = user.lastName || '';
+    const combined = `${first} ${last}`.trim();
+    return combined || user.username || user.email || 'Unknown Student';
+  };
+
+  const scorePercentFor = (result) => {
+    if (Number.isFinite(result.score)) {
+      return result.score;
+    }
+    const total = Number.isFinite(result.totalScore) && result.totalScore > 0 ? result.totalScore : 1;
+    const earned = Number.isFinite(result.pointsEarned)
+      ? result.pointsEarned
+      : Number.isFinite(result.autoScore)
+        ? result.autoScore
+        : 0;
+    return (earned / total) * 100;
+  };
+
+  // Get all completed results for this quiz
+  const results = await Result.find({
     quiz: this.quiz,
     status: 'completed'
-  }).populate('student', 'firstName lastName');
+  }).populate('user', 'firstName lastName username email');
   
   if (results.length === 0) {
     return this;
@@ -235,9 +256,9 @@ quizAnalyticsSchema.methods.recalculate = async function() {
   
   // Basic statistics
   this.totalAttempts = results.length;
-  this.completedAttempts = results.filter(r => r.status === 'completed').length;
-  
-  const scores = results.map(r => (r.score / r.totalScore) * 100);
+  this.completedAttempts = results.length;
+
+  const scores = results.map(scorePercentFor);
   this.averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
   this.highestScore = Math.max(...scores);
   this.lowestScore = Math.min(...scores);
@@ -286,33 +307,37 @@ quizAnalyticsSchema.methods.recalculate = async function() {
   this.failRate = 100 - this.passRate;
   
   // Top performers (top 5)
-  this.topPerformers = results
-    .sort((a, b) => b.score - a.score)
+  const resultsWithScores = results.map((resultDoc) => ({
+    result: resultDoc,
+    scorePercent: scorePercentFor(resultDoc)
+  }));
+
+  this.topPerformers = resultsWithScores
+    .slice()
+    .sort((a, b) => b.scorePercent - a.scorePercent)
     .slice(0, 5)
-    .map(r => ({
-      studentId: r.student._id,
-      studentName: `${r.student.firstName} ${r.student.lastName}`,
-      score: (r.score / r.totalScore) * 100,
+    .map(({ result: r, scorePercent }) => ({
+      studentId: r.user?._id,
+      studentName: getStudentName(r.user),
+      score: scorePercent,
       completionTime: r.timeTaken,
       attemptDate: r.submittedAt
     }));
-  
+
   // At-risk students (bottom 10%)
-  const threshold = Math.ceil(results.length * 0.1);
-  this.atRiskStudents = results
-    .sort((a, b) => a.score - b.score)
+  const threshold = Math.max(1, Math.ceil(resultsWithScores.length * 0.1));
+  this.atRiskStudents = resultsWithScores
+    .slice()
+    .sort((a, b) => a.scorePercent - b.scorePercent)
     .slice(0, threshold)
-    .map(r => {
-      const scorePercent = (r.score / r.totalScore) * 100;
-      return {
-        studentId: r.student._id,
-        studentName: `${r.student.firstName} ${r.student.lastName}`,
-        score: scorePercent,
-        attempts: 1,
-        lastAttemptDate: r.submittedAt,
-        riskLevel: scorePercent < 40 ? 'high' : scorePercent < 60 ? 'medium' : 'low'
-      };
-    });
+    .map(({ result: r, scorePercent }) => ({
+      studentId: r.user?._id,
+      studentName: getStudentName(r.user),
+      score: scorePercent,
+      attempts: 1,
+      lastAttemptDate: r.submittedAt,
+      riskLevel: scorePercent < 40 ? 'high' : scorePercent < 60 ? 'medium' : 'low'
+    }));
   
   this.lastCalculated = new Date();
   

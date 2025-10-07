@@ -3,25 +3,108 @@
  * Handles validation and grading logic for all 7 question types
  */
 
+const resolveMaxScore = (question) => {
+  if (Number.isFinite(question?.maxScore)) {
+    return question.maxScore;
+  }
+  if (Number.isFinite(question?.points)) {
+    return question.points;
+  }
+  return 1;
+};
+
+const normalizeOptionValue = (value) => {
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
+  }
+  if (typeof value === 'number') {
+    return value.toString().trim();
+  }
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  if (value && typeof value === 'object') {
+    if (typeof value.text === 'string') {
+      return value.text.trim();
+    }
+    if (typeof value.value === 'string') {
+      return value.value.trim();
+    }
+  }
+  return '';
+};
+
+const coerceBoolean = (value) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', 't', '1', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+    if (['false', 'f', '0', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+  }
+  return null;
+};
+
 /**
  * Validate and grade multiple-choice question
  */
 exports.validateMultipleChoice = (question, answer) => {
-  if (!answer.selectedOption) {
+  const selectedOption = normalizeOptionValue(
+    answer.selectedOption ?? answer.textAnswer ?? answer.answer
+  );
+
+  if (!selectedOption) {
     return {
       isValid: false,
       error: 'No option selected'
     };
   }
 
-  const correctOption = question.options.find(opt => opt.isCorrect);
-  const isCorrect = answer.selectedOption === correctOption?.text;
+  const options = Array.isArray(question.options) ? question.options : [];
+  const normalizedOptions = options.map(normalizeOptionValue).filter(Boolean);
+
+  const selectedLower = selectedOption.toLowerCase();
+  const normalizedOptionSet = new Set(normalizedOptions.map((opt) => opt.toLowerCase()));
+
+  if (normalizedOptionSet.size > 0 && !normalizedOptionSet.has(selectedLower)) {
+    return {
+      isValid: false,
+      error: 'Selected option is not valid'
+    };
+  }
+
+  const resolvedCorrect = normalizeOptionValue(question.correctAnswer);
+  const fallbackCorrect = options
+    .find((opt) => opt && typeof opt === 'object' && opt.isCorrect);
+  const correctValue = resolvedCorrect || normalizeOptionValue(fallbackCorrect);
+  const maxScore = resolveMaxScore(question);
+
+  if (!correctValue) {
+    return {
+      isValid: false,
+      error: 'Question is missing a correct answer reference'
+    };
+  }
+
+  const isCorrect =
+    typeof correctValue === 'string'
+      ? selectedLower === correctValue.toLowerCase()
+      : selectedOption === correctValue;
 
   return {
     isValid: true,
     isCorrect,
-    awardedScore: isCorrect ? question.points : 0,
-    maxScore: question.points
+    awardedScore: isCorrect ? maxScore : 0,
+    maxScore
   };
 };
 
@@ -42,7 +125,7 @@ exports.validateCode = async (question, answer) => {
     isValid: true,
     needsGrading: true,
     awardedScore: 0,
-    maxScore: question.points
+    maxScore: resolveMaxScore(question)
   };
 };
 
@@ -86,12 +169,13 @@ exports.validateFillInBlank = (question, answer) => {
 
   const isFullyCorrect = correctCount === question.blankAnswers.length;
   let awardedScore = 0;
+  const maxScore = resolveMaxScore(question);
 
   if (isFullyCorrect) {
-    awardedScore = question.points;
+    awardedScore = maxScore;
   } else if (question.partialCredit) {
     // Award partial credit based on percentage correct
-    awardedScore = (correctCount / question.blankAnswers.length) * question.points;
+    awardedScore = (correctCount / question.blankAnswers.length) * maxScore;
     awardedScore = Math.round(awardedScore * 100) / 100; // Round to 2 decimals
   }
 
@@ -99,7 +183,7 @@ exports.validateFillInBlank = (question, answer) => {
     isValid: true,
     isCorrect: isFullyCorrect,
     awardedScore,
-    maxScore: question.points,
+    maxScore,
     correctCount,
     totalBlanks: question.blankAnswers.length
   };
@@ -137,12 +221,13 @@ exports.validateMatching = (question, answer) => {
 
   const isFullyCorrect = correctCount === question.matchingPairs.length;
   let awardedScore = 0;
+  const maxScore = resolveMaxScore(question);
 
   if (isFullyCorrect) {
-    awardedScore = question.points;
+    awardedScore = maxScore;
   } else if (question.partialCredit) {
     // Award partial credit based on percentage correct
-    awardedScore = (correctCount / question.matchingPairs.length) * question.points;
+    awardedScore = (correctCount / question.matchingPairs.length) * maxScore;
     awardedScore = Math.round(awardedScore * 100) / 100; // Round to 2 decimals
   }
 
@@ -150,7 +235,7 @@ exports.validateMatching = (question, answer) => {
     isValid: true,
     isCorrect: isFullyCorrect,
     awardedScore,
-    maxScore: question.points,
+    maxScore,
     correctMatches: correctCount,
     totalMatches: question.matchingPairs.length
   };
@@ -183,7 +268,7 @@ exports.validateEssay = (question, answer) => {
     needsGrading: true,
     wordCount,
     awardedScore: 0,
-    maxScore: question.points
+    maxScore: resolveMaxScore(question)
   };
 };
 
@@ -236,7 +321,7 @@ exports.validateFileUpload = (question, answer) => {
     isValid: true,
     needsGrading: true,
     awardedScore: 0,
-    maxScore: question.points,
+    maxScore: resolveMaxScore(question),
     fileCount: answer.uploadedFiles.length
   };
 };
@@ -245,29 +330,56 @@ exports.validateFileUpload = (question, answer) => {
  * Validate and grade true/false question
  */
 exports.validateTrueFalse = (question, answer) => {
-  if (answer.selectedOption === undefined || answer.selectedOption === null) {
+  const selectedBoolean = coerceBoolean(
+    answer.selectedOption ?? answer.textAnswer ?? answer.answer
+  );
+
+  if (selectedBoolean === null) {
     return {
       isValid: false,
       error: 'No answer selected'
     };
   }
 
-  if (typeof answer.selectedOption !== 'boolean') {
+  const correctBoolean = (() => {
+    const fromQuestion = coerceBoolean(question.correctAnswer);
+    if (fromQuestion !== null) {
+      return fromQuestion;
+    }
+
+    const options = Array.isArray(question.options) ? question.options : [];
+    const correctOption = options.find(
+      (opt) => opt && typeof opt === 'object' && opt.isCorrect
+    );
+
+    if (correctOption !== undefined) {
+      return coerceBoolean(correctOption.text ?? correctOption.value ?? correctOption);
+    }
+
+    // Fall back to treating first option as true if not provided
+    const normalized = options.map(normalizeOptionValue).filter(Boolean);
+    if (normalized.length > 0) {
+      return coerceBoolean(normalized[0]);
+    }
+
+    return null;
+  })();
+
+  if (correctBoolean === null) {
     return {
       isValid: false,
-      error: 'Answer must be true or false'
+      error: 'Question is missing a correct answer reference'
     };
   }
 
-  const correctOption = question.options.find(opt => opt.isCorrect);
-  const correctAnswer = correctOption?.text === 'True' || correctOption?.text === true;
-  const isCorrect = answer.selectedOption === correctAnswer;
+  const isCorrect = selectedBoolean === correctBoolean;
+  const maxScore = resolveMaxScore(question);
 
   return {
     isValid: true,
     isCorrect,
-    awardedScore: isCorrect ? question.points : 0,
-    maxScore: question.points
+    awardedScore: isCorrect ? maxScore : 0,
+    maxScore
   };
 };
 
@@ -337,10 +449,12 @@ exports.gradeWithRubric = (question, rubricScores) => {
     });
   }
 
+  const maxScore = Number.isFinite(question.maxScore) ? question.maxScore : 1;
+
   return {
     isValid: true,
-    awardedScore: totalScore,
-    maxScore: question.points,
+    awardedScore: Math.min(totalScore, maxScore),
+    maxScore,
     rubricResults
   };
 };
@@ -353,7 +467,7 @@ exports.calculateQuestionStatistics = async (questionId) => {
   const Result = require('../models/Result');
 
   const results = await Result.find({
-    'answers.question': questionId,
+    'answers.questionId': questionId,
     status: 'completed'
   });
 
@@ -371,7 +485,9 @@ exports.calculateQuestionStatistics = async (questionId) => {
 
   results.forEach(result => {
     const answer = result.answers.find(
-      a => a.question.toString() === questionId.toString()
+      a =>
+        (a.questionId?._id?.toString() || a.questionId?.toString()) ===
+        questionId.toString()
     );
     
     if (answer) {

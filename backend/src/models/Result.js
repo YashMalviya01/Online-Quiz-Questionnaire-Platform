@@ -16,6 +16,10 @@ const answerSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    codeAnswer: {
+      type: String,
+      default: ''
+    },
     textAnswer: {
       type: String,
       default: ''
@@ -28,10 +32,15 @@ const answerSchema = new mongoose.Schema(
     },
     
     // Matching - pairs
-    matchingAnswers: [{
-      left: String,
-      right: String
-    }],
+    matchingAnswers: {
+      type: [
+        {
+          left: String,
+          right: String
+        }
+      ],
+      default: []
+    },
     
     // Essay
     essayAnswer: {
@@ -44,13 +53,18 @@ const answerSchema = new mongoose.Schema(
     },
     
     // File upload
-    uploadedFiles: [{
-      filename: String,
-      fileUrl: String,
-      fileSize: Number,
-      fileType: String,
-      uploadedAt: Date
-    }],
+    uploadedFiles: {
+      type: [
+        {
+          filename: String,
+          fileUrl: String,
+          fileSize: Number,
+          fileType: String,
+          uploadedAt: Date
+        }
+      ],
+      default: []
+    },
     
     // Scoring
     awardedScore: {
@@ -114,7 +128,7 @@ const resultSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['in-progress', 'submitted'],
+      enum: ['in-progress', 'submitted', 'completed'],
       default: 'in-progress'
     },
     answers: {
@@ -126,6 +140,10 @@ const resultSchema = new mongoose.Schema(
       default: 0
     },
     autoMaxScore: {
+      type: Number,
+      default: 0
+    },
+    pointsEarned: {
       type: Number,
       default: 0
     },
@@ -195,8 +213,15 @@ const resultSchema = new mongoose.Schema(
 
 // Calculate total score
 resultSchema.methods.calculateScore = function() {
-  this.score = this.answers.reduce((sum, answer) => sum + answer.awardedScore, 0);
-  this.totalScore = this.answers.reduce((sum, answer) => sum + answer.maxScore, 0);
+  const earned = this.answers.reduce((sum, answer) => sum + (answer.awardedScore || 0), 0);
+  const possible = this.answers.reduce((sum, answer) => sum + (answer.maxScore || 0), 0);
+
+  this.pointsEarned = earned;
+  this.totalScore = possible;
+  this.autoScore = earned;
+  this.autoMaxScore = possible;
+  this.score = possible > 0 ? Math.round((earned / possible) * 100) : 0;
+
   return this.score;
 };
 

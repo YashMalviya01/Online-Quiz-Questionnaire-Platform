@@ -11,24 +11,73 @@ exports.getResultsNeedingGrading = async (quizId) => {
   try {
     const results = await Result.find({
       quiz: quizId,
-      status: 'completed',
-      'answers.needsGrading': true
+      status: { $in: ['submitted'] },
+      $or: [
+        { requiresManualReview: true },
+        { 'answers.needsGrading': true }
+      ]
     })
-      .populate('student', 'name email')
-      .populate('answers.question')
+      .populate('user', 'username email firstName lastName profile.name')
+      .populate({
+        path: 'answers.questionId',
+        select: 'questionText questionType maxScore points rubric options referenceSolution'
+      })
       .sort({ submittedAt: 1 });
 
-    // Filter to only include answers that need grading
-    const filteredResults = results.map(result => {
-      const needsGradingAnswers = result.answers.filter(answer => answer.needsGrading);
+    return results.map(result => {
+      const plain = result.toObject({ virtuals: true });
+      const needsGradingAnswers = (plain.answers || []).filter(answer => answer.needsGrading);
+
+      const normalizedAnswers = needsGradingAnswers.map(answer => {
+        const questionDoc = answer.questionId && answer.questionId._id ? answer.questionId : null;
+        const maxScore = questionDoc?.maxScore ?? questionDoc?.points ?? answer.maxScore ?? 1;
+        const normalizedQuestion = questionDoc
+          ? {
+              ...questionDoc,
+              type: questionDoc.type || questionDoc.questionType,
+              questionType: questionDoc.questionType || questionDoc.type,
+              maxScore
+            }
+          : answer.questionId;
+
+        return {
+          ...answer,
+          _id: answer._id ? answer._id.toString() : undefined,
+          questionId: normalizedQuestion,
+          maxScore,
+          resultId: plain._id?.toString(),
+          answer: answer.answer || {
+            text: answer.textAnswer,
+            selectedOption: answer.selectedOption,
+            codeAnswer: answer.codeAnswer,
+            blankAnswers: answer.blankAnswers,
+            matchingAnswers: answer.matchingAnswers,
+            essayAnswer: answer.essayAnswer,
+            uploadedFiles: answer.uploadedFiles
+          }
+        };
+      });
+
+      const student = plain.user || {};
+      const fallbackName =
+        student.name ||
+        student.fullName ||
+        student.username ||
+        (student.profile && student.profile.name) ||
+        student.email ||
+        'Unknown Student';
+
       return {
-        ...result.toObject(),
-        answers: needsGradingAnswers,
-        totalNeedingGrading: needsGradingAnswers.length
+        ...plain,
+        studentId: {
+          _id: student._id?.toString(),
+          name: fallbackName,
+          email: student.email
+        },
+        answers: normalizedAnswers,
+        totalNeedingGrading: normalizedAnswers.length
       };
     });
-
-    return filteredResults;
   } catch (error) {
     throw new Error(`Error fetching results needing grading: ${error.message}`);
   }
@@ -43,30 +92,53 @@ exports.getResultsNeedingGrading = async (quizId) => {
  */
 exports.gradeAnswer = async (resultId, questionId, gradingData, graderId) => {
   try {
-    const result = await Result.findById(resultId).populate('answers.question');
+    const result = await Result.findById(resultId).populate({
+      path: 'answers.questionId',
+      select: 'questionText questionType maxScore points rubric options referenceSolution'
+    });
 
     if (!result) {
       throw new Error('Result not found');
     }
 
     const answer = result.answers.find(
-      a => a.question._id.toString() === questionId.toString()
+      a =>
+        (a.questionId?._id?.toString() || a.questionId?.toString()) ===
+        questionId.toString()
     );
 
     if (!answer) {
       throw new Error('Answer not found in result');
     }
 
-    const question = answer.question;
+    let question =
+      answer.questionId && answer.questionId._id ? answer.questionId : null;
+
+    if (!question) {
+      question = await Question.findById(answer.questionId);
+    }
+
+    if (!question) {
+      throw new Error('Question data not found for grading');
+    }
 
     // Validate grading data
-    if (gradingData.awardedScore < 0 || gradingData.awardedScore > question.points) {
-      throw new Error(`Awarded score must be between 0 and ${question.points}`);
+    const questionMaxScore = Number.isFinite(question.maxScore)
+      ? question.maxScore
+      : Number.isFinite(question.points)
+        ? question.points
+        : Number.isFinite(answer.maxScore)
+          ? answer.maxScore
+          : 1;
+
+    if (gradingData.awardedScore < 0 || gradingData.awardedScore > questionMaxScore) {
+      throw new Error(`Awarded score must be between 0 and ${questionMaxScore}`);
     }
 
     // Update answer
     answer.awardedScore = gradingData.awardedScore;
-    answer.isCorrect = gradingData.awardedScore === question.points;
+    answer.maxScore = questionMaxScore;
+    answer.isCorrect = gradingData.awardedScore === questionMaxScore;
     answer.needsGrading = false;
     answer.gradedBy = graderId;
     answer.gradedAt = new Date();
@@ -86,6 +158,8 @@ exports.gradeAnswer = async (resultId, questionId, gradingData, graderId) => {
     const stillNeedsGrading = result.checkNeedsManualGrading();
     if (!stillNeedsGrading) {
       result.manuallyGraded = true;
+      result.requiresManualReview = false;
+      result.status = 'completed';
     }
 
     await result.save();
@@ -101,41 +175,95 @@ exports.gradeAnswer = async (resultId, questionId, gradingData, graderId) => {
  * @param   {String} resultId - Result ID
  * @param   {String} questionId - Question ID
  * @param   {Map} rubricScores - Rubric scores map
+ * @param   {String} feedback - Optional feedback
  * @param   {String} graderId - Grader user ID
  * @returns {Object} Updated result
  */
-exports.gradeWithRubric = async (resultId, questionId, rubricScores, graderId) => {
+exports.gradeWithRubric = async (resultId, questionId, rubricScores, feedback, graderId) => {
   try {
-    const result = await Result.findById(resultId).populate('answers.question');
+    const result = await Result.findById(resultId).populate({
+      path: 'answers.questionId',
+      select: 'questionText questionType maxScore points rubric options referenceSolution'
+    });
 
     if (!result) {
       throw new Error('Result not found');
     }
 
     const answer = result.answers.find(
-      a => a.question._id.toString() === questionId.toString()
+      a =>
+        (a.questionId?._id?.toString() || a.questionId?.toString()) ===
+        questionId.toString()
     );
 
     if (!answer) {
       throw new Error('Answer not found in result');
     }
 
-    const question = answer.question;
+    let question =
+      answer.questionId && answer.questionId._id ? answer.questionId : null;
+
+    if (!question) {
+      question = await Question.findById(answer.questionId);
+    }
+
+    if (!question) {
+      throw new Error('Question data not found for grading');
+    }
+
+    // Normalize rubric scores to align with rubric definition
+    const normalizedRubricScores = new Map();
+
+    if (Array.isArray(question.rubric)) {
+      question.rubric.forEach(criterion => {
+        const keyCandidates = [
+          criterion._id?.toString(),
+          criterion.id?.toString(),
+          criterion.name
+        ];
+
+        let resolvedScore = 0;
+        for (const key of keyCandidates) {
+          if (key && rubricScores.has(key)) {
+            const rawScore = rubricScores.get(key);
+            const numericScore = Number.parseFloat(rawScore);
+            resolvedScore = Number.isNaN(numericScore) ? 0 : numericScore;
+            break;
+          }
+        }
+
+        normalizedRubricScores.set(criterion.name, resolvedScore);
+      });
+    }
 
     // Validate rubric scores
-    const rubricResult = questionValidator.gradeWithRubric(question, rubricScores);
+    const rubricResult = questionValidator.gradeWithRubric(question, normalizedRubricScores);
 
     if (!rubricResult.isValid) {
       throw new Error(rubricResult.error);
     }
 
     // Update answer
+    const questionMaxScore = Number.isFinite(question.maxScore)
+      ? question.maxScore
+      : Number.isFinite(question.points)
+        ? question.points
+        : Number.isFinite(answer.maxScore)
+          ? answer.maxScore
+          : Number.isFinite(rubricResult.maxScore)
+            ? rubricResult.maxScore
+            : 1;
+
     answer.awardedScore = rubricResult.awardedScore;
-    answer.isCorrect = rubricResult.awardedScore === question.points;
+    answer.maxScore = questionMaxScore;
+    answer.isCorrect = rubricResult.awardedScore === questionMaxScore;
     answer.needsGrading = false;
     answer.gradedBy = graderId;
     answer.gradedAt = new Date();
-    answer.rubricScores = rubricScores;
+  answer.rubricScores = Object.fromEntries(normalizedRubricScores);
+    if (feedback) {
+      answer.feedback = feedback;
+    }
 
     // Recalculate total score
     result.calculateScore();
@@ -144,6 +272,8 @@ exports.gradeWithRubric = async (resultId, questionId, rubricScores, graderId) =
     const stillNeedsGrading = result.checkNeedsManualGrading();
     if (!stillNeedsGrading) {
       result.manuallyGraded = true;
+      result.requiresManualReview = false;
+      result.status = 'completed';
     }
 
     await result.save();
@@ -163,7 +293,10 @@ exports.gradeWithRubric = async (resultId, questionId, rubricScores, graderId) =
  */
 exports.bulkGrade = async (resultId, gradings, graderId) => {
   try {
-    const result = await Result.findById(resultId).populate('answers.question');
+    const result = await Result.findById(resultId).populate({
+      path: 'answers.questionId',
+      select: 'questionText questionType maxScore points rubric options referenceSolution'
+    });
 
     if (!result) {
       throw new Error('Result not found');
@@ -172,21 +305,41 @@ exports.bulkGrade = async (resultId, gradings, graderId) => {
     // Grade each answer
     for (const grading of gradings) {
       const answer = result.answers.find(
-        a => a.question._id.toString() === grading.questionId.toString()
+        a =>
+          (a.questionId?._id?.toString() || a.questionId?.toString()) ===
+          grading.questionId.toString()
       );
 
       if (answer) {
-        const question = answer.question;
+        let question =
+          answer.questionId && answer.questionId._id ? answer.questionId : null;
+
+        if (!question) {
+          question = await Question.findById(answer.questionId);
+        }
+
+        if (!question) {
+          throw new Error('Question data not found for grading');
+        }
 
         // Validate score
-        if (grading.awardedScore < 0 || grading.awardedScore > question.points) {
+        const questionMaxScore = Number.isFinite(question.maxScore)
+          ? question.maxScore
+          : Number.isFinite(question.points)
+            ? question.points
+            : Number.isFinite(answer.maxScore)
+              ? answer.maxScore
+              : 1;
+
+        if (grading.awardedScore < 0 || grading.awardedScore > questionMaxScore) {
           throw new Error(
-            `Awarded score for question ${grading.questionId} must be between 0 and ${question.points}`
+            `Awarded score for question ${grading.questionId} must be between 0 and ${questionMaxScore}`
           );
         }
 
         answer.awardedScore = grading.awardedScore;
-        answer.isCorrect = grading.awardedScore === question.points;
+        answer.maxScore = questionMaxScore;
+        answer.isCorrect = grading.awardedScore === questionMaxScore;
         answer.needsGrading = false;
         answer.gradedBy = graderId;
         answer.gradedAt = new Date();
@@ -208,6 +361,8 @@ exports.bulkGrade = async (resultId, gradings, graderId) => {
     const stillNeedsGrading = result.checkNeedsManualGrading();
     if (!stillNeedsGrading) {
       result.manuallyGraded = true;
+      result.requiresManualReview = false;
+      result.status = 'completed';
     }
 
     await result.save();
@@ -254,7 +409,7 @@ exports.getGradingStatistics = async (quizId) => {
   try {
     const results = await Result.find({
       quiz: quizId,
-      status: 'completed'
+      status: { $in: ['submitted', 'completed'] }
     });
 
     const total = results.length;
@@ -300,7 +455,10 @@ exports.getGradingStatistics = async (quizId) => {
  */
 exports.autoGradeObjectiveQuestions = async (resultId) => {
   try {
-    const result = await Result.findById(resultId).populate('answers.question');
+    const result = await Result.findById(resultId).populate({
+      path: 'answers.questionId',
+      select: 'questionText questionType maxScore points rubric options referenceSolution'
+    });
 
     if (!result) {
       throw new Error('Result not found');
@@ -311,7 +469,17 @@ exports.autoGradeObjectiveQuestions = async (resultId) => {
 
     for (const answer of result.answers) {
       if (objectiveTypes.includes(answer.questionType) && answer.needsGrading) {
-        const question = answer.question;
+        let question =
+          answer.questionId && answer.questionId._id ? answer.questionId : null;
+
+        if (!question) {
+          question = await Question.findById(answer.questionId);
+        }
+
+        if (!question) {
+          continue;
+        }
+
         const validationResult = await questionValidator.validateAnswer(question, answer);
 
         if (validationResult.isValid && !validationResult.needsGrading) {
@@ -329,6 +497,8 @@ exports.autoGradeObjectiveQuestions = async (resultId) => {
     const stillNeedsGrading = result.checkNeedsManualGrading();
     if (!stillNeedsGrading) {
       result.manuallyGraded = false; // Auto-graded, not manually graded
+      result.requiresManualReview = false;
+      result.status = 'completed';
     }
 
     await result.save();

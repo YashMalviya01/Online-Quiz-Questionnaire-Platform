@@ -35,11 +35,11 @@ export const gradeAnswer = async (resultId, questionId, gradingData) => {
 /**
  * Grade with rubric
  */
-export const gradeWithRubric = async (resultId, questionId, rubricScores) => {
+export const gradeWithRubric = async (resultId, questionId, rubricScores, feedback) => {
   try {
     const response = await api.post(
       `/grading/result/${resultId}/answer/${questionId}/rubric`,
-      { rubricScores }
+      { rubricScores, feedback }
     );
     return response.data;
   } catch (error) {

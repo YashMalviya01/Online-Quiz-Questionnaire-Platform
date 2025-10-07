@@ -131,7 +131,20 @@ const MyAttemptsPage = () => {
             <div className="quizzes-grid">
               {myAttempts.map((result) => {
                 const quizTitle = result.quiz?.title || 'Untitled Quiz';
-                const score = result.score || 0;
+                const numericScore = typeof result.score === 'number' ? Math.round(result.score) : null;
+                const awaitingManual = result.status === 'submitted' && (result.requiresManualReview || result.manuallyGraded === false);
+                const scoreLabel = awaitingManual
+                  ? 'Awaiting grading'
+                  : numericScore !== null
+                    ? `${numericScore}%`
+                    : 'Pending';
+                const scoreClass = numericScore !== null
+                  ? numericScore >= 70
+                    ? 'score-high'
+                    : numericScore >= 50
+                      ? 'score-mid'
+                      : 'score-low'
+                  : 'score-mid';
                 const completedDate = result.submittedAt || result.updatedAt || result.createdAt;
                 const hasAlerts = result.proctoringLog && result.proctoringLog.length > 0;
                 
@@ -147,8 +160,8 @@ const MyAttemptsPage = () => {
                     <div className="quiz-result-info">
                       <div className="result-score-section">
                         <span className="result-score-label">Score:</span>
-                        <span className={`result-score ${score >= 70 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low'}`}>
-                          {`${score}%`}
+                        <span className={`result-score ${scoreClass}`}>
+                          {scoreLabel}
                         </span>
                       </div>
                       

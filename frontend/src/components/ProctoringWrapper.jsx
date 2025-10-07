@@ -63,6 +63,10 @@ const ProctoringWrapper = ({ resultId, faceDescriptor, quizId, children }) => {
   }, []);
 
   const handleViolationDetected = useCallback(async (violation) => {
+    if (!token) {
+      console.warn('[Proctoring] Skipping violation report because auth token is unavailable.');
+      return;
+    }
     try {
       // Normalize violation type to snake_case lowercase for backend
       const violationType = violation.type.toLowerCase();
@@ -101,6 +105,12 @@ const ProctoringWrapper = ({ resultId, faceDescriptor, quizId, children }) => {
           data: violation.data || {}
         })
       });
+
+      if (response.status === 401) {
+        console.warn('[Proctoring] Violation reporting returned 401. Prompting user to refresh session.');
+        setNotification('Your session expired—refresh the page or sign in again to resume secure monitoring.');
+        return;
+      }
 
       if (!response.ok) {
         console.error('Failed to report violation:', await response.text());

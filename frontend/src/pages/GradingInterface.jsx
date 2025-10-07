@@ -47,11 +47,32 @@ const GradingInterface = () => {
         getPendingGrading(quizId, filters.questionType),
         getGradingStatistics(quizId)
       ]);
-      setResults(pendingData.data);
+      const pendingResults = pendingData.data || [];
+      setResults(pendingResults);
       setStatistics(statsData.data);
-      if (pendingData.data.length > 0 && !selectedResult) {
-        setSelectedResult(pendingData.data[0]);
+
+      if (pendingResults.length > 0) {
+        const currentId = selectedResult?._id;
+        const nextIndex = currentId
+          ? pendingResults.findIndex(result => result._id === currentId)
+          : 0;
+        const resolvedIndex = nextIndex >= 0 ? nextIndex : 0;
+        const nextSelection = pendingResults[resolvedIndex];
+
+        setSelectedResult(nextSelection);
+        setCurrentIndex(resolvedIndex);
+
+        if (!currentId || nextSelection._id !== currentId) {
+          setGradeForm({ awardedScore: '', feedback: '', rubricScores: {} });
+          setFeedbackForm('');
+          setSelectedAnswers([]);
+          setBulkGradeForm({ scores: {} });
+        }
+      } else {
+        setSelectedResult(null);
         setCurrentIndex(0);
+        setSelectedAnswers([]);
+        setBulkGradeForm({ scores: {} });
       }
       setError('');
     } catch (err) {
@@ -67,63 +88,134 @@ const GradingInterface = () => {
       setCurrentIndex(newIndex);
       setSelectedResult(results[newIndex]);
       setGradeForm({ awardedScore: '', feedback: '', rubricScores: {} });
+      setFeedbackForm('');
+      setSelectedAnswers([]);
+      setBulkGradeForm({ scores: {} });
+      setError('');
     }
   };
 
   const handleGradeAnswer = async (questionId) => {
     try {
-      if (!gradeForm.awardedScore) {
+      if (!selectedResult) {
+        setError('No submission selected');
+        return;
+      }
+
+      const answer = selectedResult.answers.find(
+        a => (a.questionId?._id || a.questionId) === questionId
+      );
+      if (!answer) return;
+
+      const rubricEntries = Object.entries(gradeForm.rubricScores || {}).filter(([, value]) => value !== '' && value !== null && value !== undefined);
+      const hasRubric = Boolean(answer.questionId?.rubric);
+      const useRubric = hasRubric && rubricEntries.length > 0;
+
+      if (!useRubric && (gradeForm.awardedScore === '' || gradeForm.awardedScore === null || gradeForm.awardedScore === undefined)) {
         setError('Please enter a score');
         return;
       }
 
-      const answer = selectedResult.answers.find(a => a.questionId._id === questionId);
-      if (!answer) return;
-
       // Check if rubric exists and use rubric grading
-      if (answer.questionId.rubric && Object.keys(gradeForm.rubricScores).length > 0) {
+      if (useRubric) {
+        const rubricScoresPayload = Object.fromEntries(
+          rubricEntries.map(([criteriaId, score]) => [criteriaId, parseFloat(score || 0)])
+        );
+
         await gradeWithRubric(
           selectedResult._id,
           questionId,
-          Object.keys(gradeForm.rubricScores).map(criteriaId => ({
-            criteriaId,
-            score: parseFloat(gradeForm.rubricScores[criteriaId])
-          })),
+          rubricScoresPayload,
           gradeForm.feedback
         );
       } else {
+        const awardedScore = parseFloat(gradeForm.awardedScore);
+
+        if (Number.isNaN(awardedScore)) {
+          setError('Please enter a valid numeric score');
+          return;
+        }
+
         await gradeAnswer(
           selectedResult._id,
           questionId,
-          parseFloat(gradeForm.awardedScore),
-          gradeForm.feedback
+          {
+            awardedScore,
+            feedback: gradeForm.feedback
+          }
         );
       }
 
       await fetchData();
       setGradeForm({ awardedScore: '', feedback: '', rubricScores: {} });
+      setSelectedAnswers([]);
+      setBulkGradeForm({ scores: {} });
+      setError('');
     } catch (err) {
       setError(err.message || 'Failed to grade answer');
     }
   };
 
+  const buildAnswerKey = (resultId, answer) =>
+    answer._id || `${resultId}-${answer.questionId?._id || answer.questionId}`;
+
+  const findAnswerByKey = (key) => {
+    for (const result of results) {
+      for (const answer of result.answers) {
+        if (buildAnswerKey(result._id, answer) === key) {
+          const resolvedResultId =
+            typeof result._id === 'string' ? result._id : result._id?.toString?.();
+          return { answer, resultId: resolvedResultId || result._id };
+        }
+      }
+    }
+    return null;
+  };
+
   const handleBulkGrade = async () => {
     try {
-      const gradings = selectedAnswers.map(answerId => {
-        const answer = results.flatMap(r => r.answers).find(a => a._id === answerId);
-        return {
-          resultId: answer.resultId,
-          questionId: answer.questionId._id,
-          awardedScore: parseFloat(bulkGradeForm.scores[answerId] || 0),
+      const gradingsByResult = new Map();
+
+      selectedAnswers.forEach(answerKey => {
+        const resolved = findAnswerByKey(answerKey);
+        if (!resolved) {
+          return;
+        }
+
+        const { answer, resultId } = resolved;
+        if (!resultId) {
+          return;
+        }
+        const questionId = answer.questionId?._id || answer.questionId;
+        const awardedScore = parseFloat(bulkGradeForm.scores[answerKey] || 0);
+
+        if (!gradingsByResult.has(resultId)) {
+          gradingsByResult.set(resultId, []);
+        }
+
+        gradingsByResult.get(resultId).push({
+          questionId,
+          awardedScore,
           feedback: ''
-        };
+        });
       });
 
-      await bulkGrade(gradings);
+      if (gradingsByResult.size === 0) {
+        setError('Please select answers and enter scores before bulk grading');
+        return;
+      }
+
+      for (const [resultId, gradings] of gradingsByResult.entries()) {
+        if (gradings.length > 0) {
+          await bulkGrade(resultId, gradings);
+        }
+      }
+
       await fetchData();
       setShowBulkMode(false);
       setSelectedAnswers([]);
       setBulkGradeForm({ scores: {} });
+      setError('');
     } catch (err) {
       setError(err.message || 'Failed to bulk grade');
     }
@@ -145,8 +237,17 @@ const GradingInterface = () => {
 
   const handleAutoGrade = async () => {
     try {
+      if (!selectedResult) {
+        setError('No submission selected');
+        return;
+      }
+
       await autoGrade(selectedResult._id);
       await fetchData();
+      setShowBulkMode(false);
+      setBulkGradeForm({ scores: {} });
+      setSelectedAnswers([]);
+      setError('');
     } catch (err) {
       setError(err.message || 'Failed to auto-grade');
     }
@@ -298,56 +399,59 @@ const GradingInterface = () => {
               {results.map((result) =>
                 result.answers
                   .filter(a => a.needsGrading)
-                  .map((answer) => (
-                    <div
-                      key={answer._id}
-                      className={`border rounded-lg p-4 ${
-                        selectedAnswers.includes(answer._id) ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex gap-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedAnswers.includes(answer._id)}
-                          onChange={() => toggleAnswerSelection(answer._id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 text-xs rounded ${getQuestionTypeColor(answer.questionId.type)}`}>
-                              {answer.questionId.type}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                              {result.studentId?.name} - Max: {answer.questionId.maxScore}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-900 mb-2">
-                            <strong>Q:</strong> {answer.questionId.questionText}
-                          </p>
-                          <div className="bg-gray-50 rounded p-3 mb-2">
-                            <p className="text-sm text-gray-700">
-                              <strong>A:</strong> {answer.answer?.text || 'No text answer'}
+                  .map((answer) => {
+                    const answerKey = buildAnswerKey(result._id, answer);
+                    return (
+                      <div
+                        key={answerKey}
+                        className={`border rounded-lg p-4 ${
+                          selectedAnswers.includes(answerKey) ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex gap-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedAnswers.includes(answerKey)}
+                            onChange={() => toggleAnswerSelection(answerKey)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-1 text-xs rounded ${getQuestionTypeColor(answer.questionId.type)}`}>
+                                {answer.questionId.type}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {result.studentId?.name} - Max: {answer.questionId.maxScore}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-900 mb-2">
+                              <strong>Q:</strong> {answer.questionId.questionText}
                             </p>
+                            <div className="bg-gray-50 rounded p-3 mb-2">
+                              <p className="text-sm text-gray-700">
+                                <strong>A:</strong> {answer.answer?.text || 'No text answer'}
+                              </p>
+                            </div>
+                            {selectedAnswers.includes(answerKey) && (
+                              <input
+                                type="number"
+                                min="0"
+                                max={answer.questionId.maxScore}
+                                step="0.1"
+                                value={bulkGradeForm.scores[answerKey] || ''}
+                                onChange={(e) => setBulkGradeForm({
+                                  ...bulkGradeForm,
+                                  scores: { ...bulkGradeForm.scores, [answerKey]: e.target.value }
+                                })}
+                                placeholder="Score"
+                                className="w-32 border border-gray-300 rounded px-3 py-2"
+                              />
+                            )}
                           </div>
-                          {selectedAnswers.includes(answer._id) && (
-                            <input
-                              type="number"
-                              min="0"
-                              max={answer.questionId.maxScore}
-                              step="0.1"
-                              value={bulkGradeForm.scores[answer._id] || ''}
-                              onChange={(e) => setBulkGradeForm({
-                                ...bulkGradeForm,
-                                scores: { ...bulkGradeForm.scores, [answer._id]: e.target.value }
-                              })}
-                              placeholder="Score"
-                              className="w-32 border border-gray-300 rounded px-3 py-2"
-                            />
-                          )}
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
             </div>
           </div>
@@ -368,6 +472,10 @@ const GradingInterface = () => {
                         setCurrentIndex(index);
                         setSelectedResult(result);
                         setGradeForm({ awardedScore: '', feedback: '', rubricScores: {} });
+                        setFeedbackForm('');
+                        setSelectedAnswers([]);
+                        setBulkGradeForm({ scores: {} });
+                        setError('');
                       }}
                       className={`w-full text-left p-3 rounded-lg transition-colors ${
                         selectedResult?._id === result._id
@@ -434,8 +542,10 @@ const GradingInterface = () => {
                   {/* Questions to Grade */}
                   {selectedResult.answers
                     .filter(a => a.needsGrading)
-                    .map((answer, index) => (
-                      <div key={answer._id} className="bg-white rounded-lg shadow p-6">
+                    .map((answer, index) => {
+                      const answerKey = buildAnswerKey(selectedResult._id, answer);
+                      return (
+                        <div key={answerKey} className="bg-white rounded-lg shadow p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div>
                             <span className={`px-2 py-1 text-xs rounded ${getQuestionTypeColor(answer.questionId.type)}`}>
@@ -497,30 +607,50 @@ const GradingInterface = () => {
                             <div>
                               <h4 className="font-medium text-gray-900 mb-3">Grade with Rubric:</h4>
                               <div className="space-y-3 mb-4">
-                                {answer.questionId.rubric.map((criteria) => (
-                                  <div key={criteria._id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                                    <div className="flex-1">
-                                      <p className="font-medium text-gray-900">{criteria.criteria}</p>
-                                      <p className="text-sm text-gray-600">Max: {criteria.maxScore} points</p>
+                                {answer.questionId.rubric.map((criteria, criteriaIndex) => {
+                                  const criteriaKey =
+                                    criteria._id ||
+                                    criteria.id ||
+                                    criteria.name ||
+                                    criteria.criteria ||
+                                    `criterion-${criteriaIndex}`;
+                                  const criteriaLabel =
+                                    criteria.criteria ||
+                                    criteria.name ||
+                                    criteria.label ||
+                                    `Criterion ${criteriaIndex + 1}`;
+                                  const criteriaMax =
+                                    criteria.maxScore ??
+                                    criteria.maxPoints ??
+                                    criteria.points ??
+                                    criteria.maxValue ??
+                                    0;
+
+                                  return (
+                                    <div key={criteriaKey} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-900">{criteriaLabel}</p>
+                                        <p className="text-sm text-gray-600">Max: {criteriaMax} points</p>
+                                      </div>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={criteriaMax}
+                                        step="0.1"
+                                        value={gradeForm.rubricScores[criteriaKey] ?? ''}
+                                        onChange={(e) => setGradeForm({
+                                          ...gradeForm,
+                                          rubricScores: {
+                                            ...gradeForm.rubricScores,
+                                            [criteriaKey]: e.target.value
+                                          }
+                                        })}
+                                        className="w-24 border border-gray-300 rounded px-3 py-2"
+                                        placeholder="0.0"
+                                      />
                                     </div>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max={criteria.maxScore}
-                                      step="0.1"
-                                      value={gradeForm.rubricScores[criteria._id] || ''}
-                                      onChange={(e) => setGradeForm({
-                                        ...gradeForm,
-                                        rubricScores: {
-                                          ...gradeForm.rubricScores,
-                                          [criteria._id]: e.target.value
-                                        }
-                                      })}
-                                      className="w-24 border border-gray-300 rounded px-3 py-2"
-                                      placeholder="0.0"
-                                    />
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                               <div className="bg-blue-50 p-3 rounded mb-4">
                                 <p className="text-sm text-gray-600">Total Score:</p>
@@ -562,12 +692,13 @@ const GradingInterface = () => {
                             />
                           </div>
 
-                          <Button onClick={() => handleGradeAnswer(answer.questionId._id)}>
+                          <Button onClick={() => handleGradeAnswer(answer.questionId?._id || answer.questionId)}>
                             Submit Grade
                           </Button>
                         </div>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
 
                   {/* Overall Feedback */}
                   <div className="bg-white rounded-lg shadow p-6">

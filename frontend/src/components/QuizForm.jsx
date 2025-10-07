@@ -4,6 +4,7 @@ import './QuizForm.css';
 
 const defaultCodeLanguage = 'javascript';
 const supportedLanguages = ['javascript', 'typescript', 'python', 'java', 'csharp', 'cpp'];
+const trueFalseOptions = ['True', 'False'];
 
 const newBlankQuestion = () => ({
   questionText: '',
@@ -14,7 +15,16 @@ const newBlankQuestion = () => ({
   starterCode: '',
   evaluationNotes: '',
   referenceSolution: '',
-  maxScore: 1
+  maxScore: 1,
+  blankAnswers: [''],
+  caseSensitive: false,
+  matchingPairs: [{ left: '', right: '' }],
+  wordLimit: '',
+  rubric: '',
+  sampleAnswer: '',
+  allowedFileTypes: ['pdf'],
+  maxFileSize: 5,
+  partialCredit: true
 });
 
 const normaliseInitial = (initial) => {
@@ -38,38 +48,117 @@ const normaliseInitial = (initial) => {
     expiryDate: initial.expiryDate || null,
     maxAttempts: initial.maxAttempts || null,
     questions: (initial.questions || []).map((question) => {
-      const type = question.questionType === 'code' ? 'code' : 'multiple-choice';
+      const type = question.questionType || 'multiple-choice';
       const maxScore = Number.isFinite(question.maxScore) && question.maxScore > 0 ? question.maxScore : 1;
-      if (type === 'code') {
-        return {
-          questionText: question.questionText || '',
-          questionType: 'code',
-          options: [],
-          correctAnswer: question.correctAnswer || '',
-          codeLanguage: question.codeLanguage || defaultCodeLanguage,
-          starterCode: question.starterCode || '',
-          evaluationNotes: question.evaluationNotes || '',
-          referenceSolution: question.referenceSolution || '',
-          maxScore
-        };
-      }
 
-      const options =
-        question.options && question.options.length >= 2
-          ? question.options.map((opt) => `${opt}`)
-          : ['', ''];
-      const safeCorrect = options.includes(question.correctAnswer) ? question.correctAnswer : options[0];
-      return {
+      const base = {
         questionText: question.questionText || '',
-        questionType: 'multiple-choice',
-        options,
-        correctAnswer: safeCorrect || '',
-        codeLanguage: defaultCodeLanguage,
-        starterCode: '',
-        evaluationNotes: '',
-        referenceSolution: '',
-        maxScore
+        questionType: type,
+        maxScore,
+        options: Array.isArray(question.options) ? question.options.map((opt) => `${opt}`) : [],
+        correctAnswer: question.correctAnswer || '',
+        codeLanguage: question.codeLanguage || defaultCodeLanguage,
+        starterCode: question.starterCode || '',
+        evaluationNotes: question.evaluationNotes || '',
+        referenceSolution: question.referenceSolution || '',
+        blankAnswers:
+          Array.isArray(question.blankAnswers) && question.blankAnswers.length
+            ? question.blankAnswers.map((answer) => `${answer}`)
+            : [''],
+        caseSensitive: Boolean(question.caseSensitive),
+        matchingPairs:
+          Array.isArray(question.matchingPairs) && question.matchingPairs.length
+            ? question.matchingPairs.map((pair) => ({
+                left: pair?.left || '',
+                right: pair?.right || ''
+              }))
+            : [{ left: '', right: '' }],
+        wordLimit:
+          question.wordLimit !== null && question.wordLimit !== undefined
+            ? `${question.wordLimit}`
+            : '',
+        rubric: question.rubric || '',
+        sampleAnswer: question.sampleAnswer || '',
+        allowedFileTypes:
+          Array.isArray(question.allowedFileTypes) && question.allowedFileTypes.length
+            ? question.allowedFileTypes
+            : ['pdf'],
+        maxFileSize:
+          Number.isFinite(question.maxFileSize) && question.maxFileSize > 0
+            ? question.maxFileSize
+            : 5,
+        partialCredit:
+          question.partialCredit !== undefined
+            ? Boolean(question.partialCredit)
+            : type === 'matching'
       };
+
+      switch (type) {
+        case 'code':
+          return {
+            ...base,
+            questionType: 'code',
+            options: [],
+            partialCredit: false
+          };
+        case 'true-false':
+          return {
+            ...base,
+            questionType: 'true-false',
+            options: trueFalseOptions,
+            correctAnswer: trueFalseOptions.includes(base.correctAnswer)
+              ? base.correctAnswer
+              : 'True',
+            partialCredit: false
+          };
+        case 'fill-in-blank':
+          return {
+            ...base,
+            questionType: 'fill-in-blank',
+            options: [],
+            correctAnswer: '',
+            partialCredit: Boolean(base.partialCredit)
+          };
+        case 'matching':
+          return {
+            ...base,
+            questionType: 'matching',
+            options: [],
+            correctAnswer: '',
+            partialCredit: base.partialCredit !== undefined ? base.partialCredit : true
+          };
+        case 'essay':
+          return {
+            ...base,
+            questionType: 'essay',
+            options: [],
+            correctAnswer: '',
+            partialCredit: false
+          };
+        case 'file-upload':
+          return {
+            ...base,
+            questionType: 'file-upload',
+            options: [],
+            correctAnswer: '',
+            partialCredit: false
+          };
+        case 'multiple-choice':
+        default: {
+          const options =
+            base.options && base.options.length >= 2
+              ? base.options
+              : ['', ''];
+          const safeCorrect = options.includes(base.correctAnswer) ? base.correctAnswer : options[0];
+          return {
+            ...base,
+            questionType: 'multiple-choice',
+            options,
+            correctAnswer: safeCorrect || '',
+            partialCredit: false
+          };
+        }
+      }
     })
   };
 };
@@ -106,16 +195,49 @@ const QuizForm = ({
     if (form.questions.length === 0) return false;
     return form.questions.every((question) => {
       if (!question.questionText.trim()) return false;
-      if (!Number.isFinite(question.maxScore) || question.maxScore <= 0) return false;
-      if (question.questionType === 'code') {
-        return true;
+      const maxScore = Number(question.maxScore);
+      if (!Number.isFinite(maxScore) || maxScore <= 0) return false;
+
+      switch (question.questionType) {
+        case 'code':
+          return true;
+        case 'multiple-choice':
+          return (
+            Array.isArray(question.options) &&
+            question.options.length >= 2 &&
+            question.options.every((opt) => opt.trim()) &&
+            question.options.includes(question.correctAnswer)
+          );
+        case 'true-false':
+          return trueFalseOptions.includes(question.correctAnswer);
+        case 'fill-in-blank': {
+          const answers = Array.isArray(question.blankAnswers)
+            ? question.blankAnswers.map((answer) => answer.trim()).filter(Boolean)
+            : [];
+          return answers.length > 0;
+        }
+        case 'matching': {
+          const validPairs = Array.isArray(question.matchingPairs)
+            ? question.matchingPairs.filter(
+                (pair) => pair && pair.left && pair.right && pair.left.trim() && pair.right.trim()
+              )
+            : [];
+          return validPairs.length > 0;
+        }
+        case 'essay': {
+          if (!question.wordLimit) return true;
+          const limit = Number(question.wordLimit);
+          return !Number.isNaN(limit) && limit > 0;
+        }
+        case 'file-upload': {
+          const fileTypes = Array.isArray(question.allowedFileTypes)
+            ? question.allowedFileTypes.filter((type) => type && type.trim())
+            : [];
+          return fileTypes.length > 0 && Number(question.maxFileSize) > 0;
+        }
+        default:
+          return false;
       }
-      return (
-        Array.isArray(question.options) &&
-        question.options.length >= 2 &&
-        question.options.every((opt) => opt.trim()) &&
-        question.options.includes(question.correctAnswer)
-      );
     });
   }, [form]);
 
@@ -132,30 +254,94 @@ const QuizForm = ({
   const updateQuestionField = (index, field, value) => {
     updateQuestion(index, (question) => {
       if (field === 'questionType') {
-        const nextType = value === 'code' ? 'code' : 'multiple-choice';
-        if (nextType === 'code') {
-          return {
-            ...question,
-            questionType: 'code',
-            options: [],
-            correctAnswer: question.correctAnswer || '',
-            codeLanguage: question.codeLanguage || defaultCodeLanguage,
-            starterCode: question.starterCode || '',
-            evaluationNotes: question.evaluationNotes || '',
-            referenceSolution: question.referenceSolution || ''
-          };
+        switch (value) {
+          case 'code':
+            return {
+              ...question,
+              questionType: 'code',
+              options: [],
+              correctAnswer: question.correctAnswer || '',
+              codeLanguage: question.codeLanguage || defaultCodeLanguage,
+              starterCode: question.starterCode || '',
+              evaluationNotes: question.evaluationNotes || '',
+              referenceSolution: question.referenceSolution || '',
+              partialCredit: false
+            };
+          case 'true-false':
+            return {
+              ...question,
+              questionType: 'true-false',
+              options: trueFalseOptions,
+              correctAnswer: trueFalseOptions.includes(question.correctAnswer)
+                ? question.correctAnswer
+                : 'True',
+              partialCredit: false
+            };
+          case 'fill-in-blank':
+            return {
+              ...question,
+              questionType: 'fill-in-blank',
+              options: [],
+              correctAnswer: '',
+              blankAnswers: question.blankAnswers && question.blankAnswers.length ? question.blankAnswers : [''],
+              caseSensitive: Boolean(question.caseSensitive),
+              partialCredit: Boolean(question.partialCredit)
+            };
+          case 'matching':
+            return {
+              ...question,
+              questionType: 'matching',
+              options: [],
+              correctAnswer: '',
+              matchingPairs:
+                question.matchingPairs && question.matchingPairs.length
+                  ? question.matchingPairs
+                  : [{ left: '', right: '' }],
+              partialCredit: question.partialCredit !== undefined ? question.partialCredit : true
+            };
+          case 'essay':
+            return {
+              ...question,
+              questionType: 'essay',
+              options: [],
+              correctAnswer: '',
+              wordLimit: question.wordLimit || '',
+              rubric: question.rubric || '',
+              sampleAnswer: question.sampleAnswer || '',
+              partialCredit: false
+            };
+          case 'file-upload':
+            return {
+              ...question,
+              questionType: 'file-upload',
+              options: [],
+              correctAnswer: '',
+              allowedFileTypes:
+                question.allowedFileTypes && question.allowedFileTypes.length
+                  ? question.allowedFileTypes
+                  : ['pdf'],
+              maxFileSize:
+                Number.isFinite(Number(question.maxFileSize)) && Number(question.maxFileSize) > 0
+                  ? Number(question.maxFileSize)
+                  : 5,
+              partialCredit: false
+            };
+          case 'multiple-choice':
+          default: {
+            const options = question.options && question.options.length >= 2 ? question.options : ['', ''];
+            return {
+              ...question,
+              questionType: 'multiple-choice',
+              options,
+              correctAnswer: options[0] || '',
+              codeLanguage: defaultCodeLanguage,
+              starterCode: '',
+              evaluationNotes: '',
+              referenceSolution: '',
+              partialCredit: false
+            };
+          }
         }
-        const options = question.options && question.options.length >= 2 ? question.options : ['', ''];
-        return {
-          ...question,
-          questionType: 'multiple-choice',
-          options,
-          correctAnswer: options[0] || '',
-          codeLanguage: defaultCodeLanguage,
-          starterCode: '',
-          evaluationNotes: '',
-          referenceSolution: ''
-        };
       }
 
       if (field === 'maxScore') {
@@ -163,6 +349,13 @@ const QuizForm = ({
         return {
           ...question,
           maxScore: Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+        };
+      }
+
+      if (field === 'partialCredit' || field === 'caseSensitive') {
+        return {
+          ...question,
+          [field]: Boolean(value)
         };
       }
 
@@ -201,6 +394,69 @@ const QuizForm = ({
     });
   };
 
+  const updateBlankAnswer = (questionIndex, answerIndex, value) => {
+    updateQuestion(questionIndex, (question) => {
+      const answers = Array.isArray(question.blankAnswers) ? [...question.blankAnswers] : [];
+      answers[answerIndex] = value;
+      return {
+        ...question,
+        blankAnswers: answers
+      };
+    });
+  };
+
+  const addBlankAnswer = (questionIndex) => {
+    updateQuestion(questionIndex, (question) => ({
+      ...question,
+      blankAnswers: [...(question.blankAnswers || []), '']
+    }));
+  };
+
+  const removeBlankAnswer = (questionIndex, answerIndex) => {
+    updateQuestion(questionIndex, (question) => {
+      const answers = Array.isArray(question.blankAnswers) ? question.blankAnswers.filter((_, idx) => idx !== answerIndex) : [];
+      return {
+        ...question,
+        blankAnswers: answers.length > 0 ? answers : ['']
+      };
+    });
+  };
+
+  const updateMatchingPair = (questionIndex, pairIndex, key, value) => {
+    updateQuestion(questionIndex, (question) => {
+      const pairs = Array.isArray(question.matchingPairs)
+        ? question.matchingPairs.map((pair) => ({ ...pair }))
+        : [];
+      pairs[pairIndex] = {
+        ...pairs[pairIndex],
+        [key]: value
+      };
+      return {
+        ...question,
+        matchingPairs: pairs
+      };
+    });
+  };
+
+  const addMatchingPair = (questionIndex) => {
+    updateQuestion(questionIndex, (question) => ({
+      ...question,
+      matchingPairs: [...(question.matchingPairs || []), { left: '', right: '' }]
+    }));
+  };
+
+  const removeMatchingPair = (questionIndex, pairIndex) => {
+    updateQuestion(questionIndex, (question) => {
+      const pairs = Array.isArray(question.matchingPairs)
+        ? question.matchingPairs.filter((_, idx) => idx !== pairIndex)
+        : [];
+      return {
+        ...question,
+        matchingPairs: pairs.length > 0 ? pairs : [{ left: '', right: '' }]
+      };
+    });
+  };
+
   const addQuestion = () => {
     setForm((prev) => ({
       ...prev,
@@ -229,20 +485,76 @@ const QuizForm = ({
       timeLimit: form.timeLimit,
       expiryDate: form.expiryDate,
       maxAttempts: form.maxAttempts,
-      questions: form.questions.map((question) => ({
-        questionText: question.questionText.trim(),
-        questionType: question.questionType,
-        options:
-          question.questionType === 'multiple-choice'
-            ? question.options.map((option) => option.trim())
-            : [],
-        correctAnswer: question.correctAnswer,
-        codeLanguage: question.questionType === 'code' ? question.codeLanguage : undefined,
-        starterCode: question.questionType === 'code' ? question.starterCode : undefined,
-        evaluationNotes: question.questionType === 'code' ? question.evaluationNotes : undefined,
-        referenceSolution: question.questionType === 'code' ? question.referenceSolution : undefined,
-        maxScore: question.maxScore
-      }))
+      questions: form.questions.map((question) => {
+        const base = {
+          questionText: question.questionText.trim(),
+          questionType: question.questionType,
+          maxScore: Number(question.maxScore) > 0 ? Number(question.maxScore) : 1
+        };
+
+        switch (question.questionType) {
+          case 'multiple-choice': {
+            const options = (question.options || []).map((option) => option.trim());
+            base.options = options;
+            base.correctAnswer = question.correctAnswer;
+            break;
+          }
+          case 'true-false': {
+            base.options = [...trueFalseOptions];
+            base.correctAnswer = trueFalseOptions.includes(question.correctAnswer)
+              ? question.correctAnswer
+              : trueFalseOptions[0];
+            break;
+          }
+          case 'code': {
+            base.codeLanguage = question.codeLanguage;
+            base.starterCode = question.starterCode || undefined;
+            base.referenceSolution = question.referenceSolution || undefined;
+            base.evaluationNotes = question.evaluationNotes || undefined;
+            break;
+          }
+          case 'fill-in-blank': {
+            base.blankAnswers = (question.blankAnswers || [])
+              .map((answer) => answer.trim())
+              .filter(Boolean);
+            base.caseSensitive = Boolean(question.caseSensitive);
+            base.partialCredit = Boolean(question.partialCredit);
+            break;
+          }
+          case 'matching': {
+            base.matchingPairs = (question.matchingPairs || [])
+              .map((pair) => ({
+                left: pair?.left?.trim() || '',
+                right: pair?.right?.trim() || ''
+              }))
+              .filter((pair) => pair.left && pair.right);
+            base.partialCredit = Boolean(question.partialCredit);
+            break;
+          }
+          case 'essay': {
+            const parsedLimit = Number(question.wordLimit);
+            base.wordLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+            base.rubric = question.rubric?.trim() || undefined;
+            base.sampleAnswer = question.sampleAnswer?.trim() || undefined;
+            break;
+          }
+          case 'file-upload': {
+            base.allowedFileTypes = (question.allowedFileTypes || [])
+              .map((type) => type.trim())
+              .filter(Boolean);
+            const parsedSize = Number(question.maxFileSize);
+            base.maxFileSize = Number.isFinite(parsedSize) && parsedSize > 0 ? parsedSize : undefined;
+            break;
+          }
+          default: {
+            base.correctAnswer = question.correctAnswer;
+          }
+        }
+
+        return Object.fromEntries(
+          Object.entries(base).filter(([, value]) => value !== undefined)
+        );
+      })
     };
 
     onSubmit?.(payload);
@@ -341,7 +653,12 @@ const QuizForm = ({
             onChange={(event) => updateQuestionField(index, 'questionType', event.target.value)}
           >
             <option value="multiple-choice">Multiple choice</option>
+            <option value="true-false">True / False</option>
             <option value="code">Code response</option>
+            <option value="fill-in-blank">Fill in the blank</option>
+            <option value="matching">Matching pairs</option>
+            <option value="essay">Essay response</option>
+            <option value="file-upload">File upload</option>
           </select>
 
           <label htmlFor={`question-text-${index}`}>Prompt</label>
@@ -383,11 +700,14 @@ const QuizForm = ({
             )}
           </div>
 
-          {question.questionType === 'multiple-choice' ? (
+          {question.questionType === 'multiple-choice' && (
             <>
               <h4>Options</h4>
               {question.options.map((option, optionIndex) => (
-                <div key={`question-${index}-option-${optionIndex}`} style={{ display: 'flex', gap: '0.75rem' }}>
+                <div
+                  key={`question-${index}-option-${optionIndex}`}
+                  style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}
+                >
                   <input
                     value={option}
                     onChange={(event) => updateOption(index, optionIndex, event.target.value)}
@@ -406,32 +726,67 @@ const QuizForm = ({
                   )}
                 </div>
               ))}
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => addOption(index)}
-                style={{ marginTop: '0.75rem' }}
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  display: 'flex',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}
               >
-                Add option
-              </button>
-              <label htmlFor={`correct-answer-${index}`}>Correct answer</label>
-              <select
-                id={`correct-answer-${index}`}
-                value={question.correctAnswer}
-                onChange={(event) => updateQuestionField(index, 'correctAnswer', event.target.value)}
-                required
-              >
-                <option value="" disabled>
-                  Select the correct option
-                </option>
-                {question.options.map((option, optionIndex) => (
-                  <option key={`correct-${index}-${optionIndex}`} value={option}>
-                    {option || `Option ${optionIndex + 1}`}
-                  </option>
-                ))}
-              </select>
+                <button type="button" className="primary-btn" onClick={() => addOption(index)}>
+                  Add option
+                </button>
+                <label
+                  htmlFor={`correct-answer-${index}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  Correct answer
+                  <select
+                    id={`correct-answer-${index}`}
+                    value={question.correctAnswer}
+                    onChange={(event) => updateQuestionField(index, 'correctAnswer', event.target.value)}
+                    required
+                  >
+                    <option value="" disabled>
+                      Select the correct option
+                    </option>
+                    {question.options.map((option, optionIndex) => (
+                      <option key={`correct-${index}-${optionIndex}`} value={option}>
+                        {option || `Option ${optionIndex + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </>
-          ) : (
+          )}
+
+          {question.questionType === 'true-false' && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4>Correct answer</h4>
+              <div style={{ display: 'flex', gap: '1.5rem' }}>
+                {trueFalseOptions.map((option) => (
+                  <label
+                    key={`${option}-${index}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <input
+                      type="radio"
+                      name={`true-false-${index}`}
+                      value={option}
+                      checked={question.correctAnswer === option}
+                      onChange={(event) => updateQuestionField(index, 'correctAnswer', event.target.value)}
+                    />
+                    {option}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {question.questionType === 'code' && (
             <>
               <label htmlFor={`starter-code-${index}`}>Starter code (optional)</label>
               <textarea
@@ -460,6 +815,193 @@ const QuizForm = ({
                 placeholder="Highlight what a strong answer should include."
               />
             </>
+          )}
+
+          {question.questionType === 'fill-in-blank' && (
+            <div
+              className="question-subsection"
+              style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+            >
+              <h4>Acceptable answers</h4>
+              {question.blankAnswers?.map((answer, answerIndex) => (
+                <div
+                  key={`blank-${index}-${answerIndex}`}
+                  style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}
+                >
+                  <input
+                    value={answer}
+                    onChange={(event) => updateBlankAnswer(index, answerIndex, event.target.value)}
+                    placeholder="Accepted answer"
+                    required
+                  />
+                  {Array.isArray(question.blankAnswers) && question.blankAnswers.length > 1 && (
+                    <button
+                      type="button"
+                      className="primary-btn danger"
+                      onClick={() => removeBlankAnswer(index, answerIndex)}
+                      style={{ padding: '0.35rem 0.75rem' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="primary-btn" onClick={() => addBlankAnswer(index)}>
+                Add acceptable answer
+              </button>
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(question.caseSensitive)}
+                    onChange={(event) => updateQuestionField(index, 'caseSensitive', event.target.checked)}
+                  />
+                  Case sensitive
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(question.partialCredit)}
+                    onChange={(event) => updateQuestionField(index, 'partialCredit', event.target.checked)}
+                  />
+                  Allow partial credit
+                </label>
+              </div>
+            </div>
+          )}
+
+          {question.questionType === 'matching' && (
+            <div
+              className="question-subsection"
+              style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+            >
+              <h4>Matching pairs</h4>
+              {question.matchingPairs?.map((pair, pairIndex) => (
+                <div
+                  key={`matching-${index}-${pairIndex}`}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '0.75rem',
+                    alignItems: 'center'
+                  }}
+                >
+                  <input
+                    value={pair?.left || ''}
+                    onChange={(event) => updateMatchingPair(index, pairIndex, 'left', event.target.value)}
+                    placeholder="Prompt"
+                    required
+                  />
+                  <input
+                    value={pair?.right || ''}
+                    onChange={(event) => updateMatchingPair(index, pairIndex, 'right', event.target.value)}
+                    placeholder="Correct match"
+                    required
+                  />
+                  {Array.isArray(question.matchingPairs) && question.matchingPairs.length > 1 && (
+                    <button
+                      type="button"
+                      className="primary-btn danger"
+                      onClick={() => removeMatchingPair(index, pairIndex)}
+                      style={{ padding: '0.35rem 0.75rem' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="primary-btn" onClick={() => addMatchingPair(index)}>
+                Add pair
+              </button>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(question.partialCredit)}
+                  onChange={(event) => updateQuestionField(index, 'partialCredit', event.target.checked)}
+                />
+                Allow partial credit for partially correct matches
+              </label>
+            </div>
+          )}
+
+          {question.questionType === 'essay' && (
+            <div
+              className="question-subsection"
+              style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+            >
+              <div>
+                <label htmlFor={`word-limit-${index}`}>Word limit (optional)</label>
+                <input
+                  id={`word-limit-${index}`}
+                  type="number"
+                  min="1"
+                  value={question.wordLimit || ''}
+                  onChange={(event) => updateQuestionField(index, 'wordLimit', event.target.value)}
+                  placeholder="e.g., 250"
+                />
+              </div>
+              <div>
+                <label htmlFor={`rubric-${index}`}>Rubric criteria (optional)</label>
+                <input
+                  id={`rubric-${index}`}
+                  value={question.rubric || ''}
+                  onChange={(event) => updateQuestionField(index, 'rubric', event.target.value)}
+                  placeholder="e.g., Thesis|Evidence|Clarity"
+                />
+                <small style={{ color: '#6b7280' }}>Separate criteria with the | character</small>
+              </div>
+              <div>
+                <label htmlFor={`sample-answer-${index}`}>Sample answer (optional)</label>
+                <textarea
+                  id={`sample-answer-${index}`}
+                  rows={4}
+                  value={question.sampleAnswer || ''}
+                  onChange={(event) => updateQuestionField(index, 'sampleAnswer', event.target.value)}
+                  placeholder="Provide a model answer or grading notes..."
+                />
+              </div>
+            </div>
+          )}
+
+          {question.questionType === 'file-upload' && (
+            <div
+              className="question-subsection"
+              style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+            >
+              <div>
+                <label htmlFor={`file-types-${index}`}>Allowed file types</label>
+                <input
+                  id={`file-types-${index}`}
+                  value={(question.allowedFileTypes || []).join(', ')}
+                  onChange={(event) => {
+                    const types = event.target.value
+                      .split(',')
+                      .map((type) => type.trim())
+                      .filter(Boolean);
+                    updateQuestionField(index, 'allowedFileTypes', types.length ? types : ['pdf']);
+                  }}
+                  placeholder="e.g., pdf, docx, zip"
+                />
+                <small style={{ color: '#6b7280' }}>Separate file extensions with commas</small>
+              </div>
+              <div>
+                <label htmlFor={`max-file-size-${index}`}>Max file size (MB)</label>
+                <input
+                  id={`max-file-size-${index}`}
+                  type="number"
+                  min="1"
+                  value={question.maxFileSize || ''}
+                  onChange={(event) => {
+                    const parsed = Number.parseFloat(event.target.value);
+                    updateQuestion(index, (prevQuestion) => ({
+                      ...prevQuestion,
+                      maxFileSize: Number.isFinite(parsed) && parsed > 0 ? parsed : ''
+                    }));
+                  }}
+                  placeholder="e.g., 10"
+                />
+              </div>
+            </div>
           )}
         </div>
       ))}
