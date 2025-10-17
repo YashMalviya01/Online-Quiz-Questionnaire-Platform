@@ -25,13 +25,15 @@ function Ensure-EnvFile {
 }
 
 $backendDefaultEnv = @"
-PORT=5000
+PORT=4000
 NODE_ENV=development
-MONGODB_URI=mongodb://mongo:27017/quiz-platform
+MONGO_URI=mongodb://mongo:27017/quiz-proctor
 JWT_SECRET=supersecretjwt
 SESSION_SECRET=supersecretsession
-FRONTEND_URL=http://localhost:3000
-CLIENT_ORIGIN=http://localhost:3000
+FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
+CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
+CORS_ALLOW_ALL=false
+CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
 LOG_LEVEL=info
 "@
 
@@ -39,6 +41,7 @@ $frontendDefaultEnv = @"
 VITE_API_BASE_URL=http://localhost:4000
 VITE_WS_URL=ws://localhost:4000
 VITE_API_PORT=4000
+VITE_PUBLIC_TUNNEL_URL=https://smart-quiz-platform.pentacoresolutions.in
 "@
 
 Write-Host "========================================" -ForegroundColor Cyan
@@ -132,6 +135,8 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host " Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host " Backend API: http://localhost:4000/api" -ForegroundColor Cyan
+Write-Host " Public Tunnel: https://smart-quiz-platform.pentacoresolutions.in" -ForegroundColor Cyan
+Write-Host " Ngrok Dashboard: http://localhost:4040" -ForegroundColor Cyan
 Write-Host ""
 Write-Host " Demo Credentials:" -ForegroundColor Yellow
 Write-Host "  Admin:" -ForegroundColor White

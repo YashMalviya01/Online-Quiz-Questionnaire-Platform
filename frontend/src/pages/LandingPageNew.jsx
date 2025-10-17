@@ -8,6 +8,7 @@ import {
 import { Button } from '../components/ui/Button';
 import '../styles/globals.css';
 import './LandingPageNew.css';
+import apiClient from '../services/apiClient.js';
 
 const LandingPageNew = () => {
   const navigate = useNavigate();
@@ -98,19 +99,16 @@ const LandingPageNew = () => {
                     onClick={async () => {
                       if (!window.confirm('This will populate the database with demo quizzes and sample users. Continue?')) return;
                       try {
-                        const response = await fetch('http://localhost:4000/api/seed', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' }
-                        });
-                        const data = await response.json();
-                        if (data.success) {
+                        const { data } = await apiClient.post('/api/seed');
+                        if (data?.success) {
                           alert('Demo data loaded successfully! You can now login with demo credentials.');
                           navigate('/login');
                         } else {
-                          alert('Failed to load demo data: ' + data.message);
+                          alert('Failed to load demo data: ' + (data?.message || 'Unknown error'));
                         }
                       } catch (error) {
-                        alert('Error loading demo data: ' + error.message);
+                        const message = error.response?.data?.message || error.message;
+                        alert('Error loading demo data: ' + message);
                       }
                     }}
                     leftIcon={<Database />}

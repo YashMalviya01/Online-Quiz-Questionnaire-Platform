@@ -25,14 +25,16 @@ create_env_file() {
         echo -e "${GREEN}✓ Created ${label} .env from template${NC}"
     else
         if [ "$label" = "Backend" ]; then
-            cat <<'EOF' > "$target_file"
-PORT=5000
+        cat <<'EOF' > "$target_file"
+PORT=4000
 NODE_ENV=development
-MONGODB_URI=mongodb://mongo:27017/quiz-platform
+MONGO_URI=mongodb://mongo:27017/quiz-proctor
 JWT_SECRET=supersecretjwt
 SESSION_SECRET=supersecretsession
-FRONTEND_URL=http://localhost:3000
-CLIENT_ORIGIN=http://localhost:3000
+FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
+CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
+CORS_ALLOW_ALL=false
+CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
 LOG_LEVEL=info
 EOF
         else
@@ -40,6 +42,7 @@ EOF
 VITE_API_BASE_URL=http://localhost:4000
 VITE_WS_URL=ws://localhost:4000
 VITE_API_PORT=4000
+VITE_PUBLIC_TUNNEL_URL=https://smart-quiz-platform.pentacoresolutions.in
 EOF
         fi
         echo -e "${YELLOW}⚠ ${label} .env template missing; generated defaults${NC}"
@@ -179,6 +182,8 @@ echo ""
 echo -e "${WHITE}  Frontend: ${NC}${CYAN}http://localhost:3000${NC}"
 echo -e "${WHITE}  Backend:  ${NC}${CYAN}http://localhost:4000${NC}"
 echo -e "${WHITE}  MongoDB:  ${NC}${CYAN}localhost:27017${NC}"
+echo -e "${WHITE}  Public Tunnel: ${NC}${CYAN}https://smart-quiz-platform.pentacoresolutions.in${NC}"
+echo -e "${WHITE}  Ngrok Dashboard: ${NC}${CYAN}http://localhost:4040${NC}"
 echo ""
 echo -e "${WHITE}  Demo Credentials:${NC}"
 echo -e "${WHITE}  • Admin:      ${NC}${CYAN}admin@quiz.com${NC} / ${CYAN}admin123${NC}"
@@ -190,7 +195,7 @@ echo -e "${WHITE}  • View logs:    ${NC}${CYAN}$COMPOSE_CMD logs -f${NC}"
 echo -e "${WHITE}  • Stop all:     ${NC}${CYAN}$COMPOSE_CMD down${NC}"
 echo -e "${WHITE}  • Restart:      ${NC}${CYAN}$COMPOSE_CMD restart${NC}"
 echo ""
-echo -e "${WHITE}  Documentation: ${NC}${CYAN}docs/README.md${NC}"
+echo -e "${WHITE}  Documentation: ${NC}${CYAN}README.md${NC}"
 echo ""
 echo -e "${GRAY}  Press any key to exit...${NC}"
 read -n 1 -s

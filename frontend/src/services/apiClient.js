@@ -1,10 +1,8 @@
 import axios from 'axios';
-
-const defaultBase = import.meta.env.VITE_API_BASE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_API_PORT || 4000}`;
+import { resolveApiBase } from '../utils/resolveApiBase.js';
 
 const apiClient = axios.create({
-  baseURL: defaultBase,
+  baseURL: resolveApiBase(),
   withCredentials: false
 });
 

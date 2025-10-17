@@ -6,11 +6,10 @@ import MovementTrackingEngine from '../utils/movementTrackingEngine.js';
 import LivenessDetection from '../utils/livenessDetection.js';
 import AudioDetection from '../utils/audioDetection.js';
 import { MicVAD } from '@ricky0123/vad';
+import { resolveApiBase, resolveWsBase } from '../utils/resolveApiBase.js';
 
-const computedApiBase =
-  import.meta.env.VITE_API_BASE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_API_PORT || 4000}`;
-const wsBase = import.meta.env.VITE_WS_URL || computedApiBase.replace('http', 'ws');
+const computedApiBase = resolveApiBase();
+const wsBase = resolveWsBase();
 
 const ProctoringWrapper = ({ resultId, faceDescriptor, quizId, children }) => {
   const videoRef = useRef(null);

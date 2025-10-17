@@ -115,10 +115,29 @@ const FaceEnrollmentPage = () => {
       console.warn('⚠️ Camera request blocked:', { modelsLoaded, hasReference: !!referenceDescriptor });
       return;
     }
+
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      console.error('❌ getUserMedia is unavailable in this context');
+      setStatus('error');
+      setError('Camera access is not supported in this browser context. Use a modern browser and HTTPS connection.');
+      return;
+    }
+
+    if (!window.isSecureContext && !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)) {
+      console.warn('⚠️ Insecure context detected. getUserMedia requires HTTPS on remote devices.');
+      setStatus('error');
+      setError('Camera access requires a secure (https) connection when accessing from another device. Please reload over https.');
+      return;
+    }
     try {
       console.log('📸 Requesting camera access...');
       setStatus('requesting-permission');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user'
+        },
+        audio: false
+      });
       console.log('✅ Camera access granted!', stream);
       streamRef.current = stream;
       if (videoRef.current) {

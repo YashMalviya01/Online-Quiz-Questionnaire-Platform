@@ -1,0 +1,81 @@
+Objective
+
+Deliver a Smart Quiz Platform that fuses intelligent assessment, AI-driven proctoring, and actionable analytics to uphold academic integrity in any modality.
+Empower administrators, instructors, and learners through personalized quiz delivery, role-based access, and transparent performance insights that drive continuous improvement.
+Provide a trustworthy remote testing environment by combining biometric verification, behavioral anomaly detection, and real-time alerts that deter malpractice without degrading user experience.
+Establish an extensible foundation—Dockerized deployments, modular MERN architecture, and open APIs—that accelerates institutional adoption, third-party integrations, and future innovations like adaptive learning paths and LMS connectors.
+Champion learner equity by pairing accessibility-first UI, code-execution sandboxes, and adaptive remediation with analytics that surface at-risk candidates early.
+
+
+Components / Algorithms / Tech Stack
+
+Frontend: React 18 + Vite, Redux Toolkit, Tailwind CSS, Chart.js/Recharts, face-api.js.
+Backend & Data: Node.js 18 with Express.js, MongoDB via Mongoose, Passport.js (OAuth), JWT + refresh tokens, Socket.io.
+Security & Proctoring: AI facial recognition and behavior scoring, tab-switch detection, helmet, Joi validation, rate limiting.
+Analytics & Automation: MongoDB aggregations, performance dashboards, exportable CSV/PDF reports, automated grading pipeline.
+DevOps & QA: Docker Compose, Nginx reverse proxy option, seeded demo scripts, Jest/Vitest test suites.
+
+
+Methodology
+
+Requirement Capture: Identify stakeholder roles (admin, instructor, learner) and compliance constraints.
+Architecture & Data Modeling: Design modular MVC backend with Mongoose schemas for quizzes, questions, results, proctoring events.
+Secure Authentication Layer: Implement JWT with refresh tokens, OAuth, and optional 2FA; enforce RBAC middleware.
+Quiz Authoring & Delivery: Build question banks, randomization, adaptive difficulty, timed/untimed modes, and code execution sandbox.
+AI-Driven Proctoring: Use webcam feeds + face-api.js for facial landmarks, integrate browser event listeners for tab focus, compute violation scores.
+Real-Time Monitoring & Notifications: Stream events via Socket.io dashboards for instructors and flag anomalies.
+Analytics & Reporting: Aggregate results, generate insights (accuracy, time, integrity metrics), and provide export features.
+Quality Assurance: Automated Jest/Vitest suites, linting, Dockerized staging, user acceptance testing with seeded personas.
+Deployment: Containerized stack on Docker, configurable .env, optional cloud scaling.
+
+
+Applications
+
+Universities conducting remote midterms/finals.
+Corporate compliance training and certification.
+MOOC providers needing scalable, integrity-focused assessments.
+Professional licensure exams with remote candidates.
+K-12 institutions adopting blended or flipped classrooms.
+
+
+Flowchart / Block Diagram (textual)
+
+User Access Layer:
+User → Login/SSO → JWT & 2FA verification → Role routing.
+Quiz Management:
+Instructor/Admin → Quiz Builder → Question Bank Service → MongoDB.
+Pre-Exam Proctoring Setup:
+Candidate → System Check (device, webcam, bandwidth) → Identity verification → Proctoring session start.
+Live Assessment Loop:
+Question Delivery Service ↔ Client UI → Response capture → Timer/Adaptive logic.
+Parallel: Proctoring Service → Face/Audio/Tab monitor → Violation scoring.
+Submission & Storage:
+Responses → Grading Engine (auto/manual) → Result store; Violations → Audit Log.
+Analytics & Reporting:
+Aggregation pipelines → Dashboards → Instructor/Admin view → Export/Alerts.
+
+
+Result
+
+Verified prototype with seeded datasets demonstrating multi-role workflows, live proctoring alerts, and analytics dashboards.
+Reduced manual oversight via automated violation scoring and consolidated reporting.
+Positive usability feedback from demo users on clarity of dashboards and proctoring transparency.
+
+
+Conclusion
+
+Smart Quiz Platform integrates secure assessment delivery with AI proctoring and actionable analytics, aligning with contemporary research on academic integrity and adaptive learning.
+Modular architecture supports future extensions (pose estimation, LMS integration) and scalability across educational contexts.
+
+
+Reference
+1. Meta Landys (2025). “Enhancing Online STEM Education: Impacts of Pre-Released Exam Materials and Remote Proctoring Requirements.” Online Learning Journal, 29(3). DOI: 10.24059/olj.v29i3.4743. Explores remote proctoring’s effect on performance and anxiety—useful for proctoring justification.
+2. Yaqub, Mohanty & Suleiman (2023). “Proctoring Online Exam Using Eye Tracking.” In Proceedings of the 20th International Conference on Security and Cryptography. DOI: 10.5220/0012120600003555. Presents eye-tracking-based proctoring mechanics; informs AI proctoring module.
+3. Rawashdeh & Rawashdeh (2023). “Online Exam Proctoring: Challenges, Timeline, and a Proposed Custom Rule-Based Online Proctoring Exam Framework.” In Future Technologies Conference 2023 (LNNS, vol. 543). DOI: 10.1007/978-3-031-47448-4_28. Offers design considerations and rule-based safeguards aligning with violation scoring.
+4. INVIG-AI Team (2025). “INVIG-AI Online Exam Proctoring System.” IRJMETS, May 2025. DOI: 10.56726/irjmets75406. Describes AI-driven posture/facial analytics for integrity monitoring.
+5. Jiyou & Yunfan (2022). “The Design, Implementation and Pilot Application of an Intelligent Online Proctoring System for Online Exams.” Interactive Technology and Smart Education, 19(1), 112–120. DOI: 10.1108/ITSE-12-2020-0246. Discusses intelligent proctoring architecture—parallels current system.
+6. Ross et al. (2018). “Adaptive Quizzes to Increase Motivation, Engagement and Learning Outcomes.” International Journal of Educational Technology in Higher Education, 15(1). DOI: 10.1186/s41239-018-0113-2. Supports adaptive quiz bank and analytics components.
+
+
+
+

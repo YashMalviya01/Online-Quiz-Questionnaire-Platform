@@ -88,6 +88,8 @@ echo.
 echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:4000
 echo   MongoDB:  localhost:27017
+echo   Public Tunnel: https://smart-quiz-platform.pentacoresolutions.in
+echo   Ngrok Dashboard: http://localhost:4040
 echo.
 echo   Demo Credentials:
 echo   • Admin:      admin@quiz.com / admin123
@@ -99,7 +101,7 @@ echo   • View logs:    docker-compose logs -f
 echo   • Stop all:     docker-compose down
 echo   • Restart:      docker-compose restart
 echo.
-echo   Documentation: docs/README.md
+echo   Documentation: README.md
 echo.
 echo   Press any key to exit...
 pause > nul
@@ -123,13 +125,15 @@ if exist "%dir%\.env.example" (
 
 if /I "%label%"=="backend" (
     > "%dir%\.env" (
-        echo PORT=5000
+        echo PORT=4000
         echo NODE_ENV=development
-        echo MONGODB_URI=mongodb://mongo:27017/quiz-platform
+        echo MONGO_URI=mongodb://mongo:27017/quiz-proctor
         echo JWT_SECRET=supersecretjwt
         echo SESSION_SECRET=supersecretsession
-        echo FRONTEND_URL=http://localhost:3000
-        echo CLIENT_ORIGIN=http://localhost:3000
+    echo FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
+        echo CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
+        echo CORS_ALLOW_ALL=false
+        echo CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
         echo LOG_LEVEL=info
     )
 ) else (
@@ -137,6 +141,7 @@ if /I "%label%"=="backend" (
         echo VITE_API_BASE_URL=http://localhost:4000
         echo VITE_WS_URL=ws://localhost:4000
         echo VITE_API_PORT=4000
+        echo VITE_PUBLIC_TUNNEL_URL=https://smart-quiz-platform.pentacoresolutions.in
     )
 )
 echo   Generated %label% .env with defaults

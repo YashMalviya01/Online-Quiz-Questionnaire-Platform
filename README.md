@@ -73,7 +73,7 @@ Pick your platform and run the bundled setup script:
 
 > ℹ️ These scripts spin up Docker containers with built-in defaults and **auto-create backend/frontend `.env` files** if they don't exist, so you're ready to explore with a single click. Update the generated `.env` files afterward if you need custom credentials or third-party keys—see [Manual Setup](#-manual-setup) and [Deployment](#-deployment).
 
-The script verifies Docker, builds the containers, boots the stack, seeds demo data, and opens the app at `http://localhost:3000` (frontend) with the API at `http://localhost:5000/api`.
+The script verifies Docker, builds the containers, boots the stack, seeds demo data, opens the app at `http://localhost:3000` (frontend) with the API at `http://localhost:4000/api`, and publishes the same frontend through an ngrok tunnel at `https://smart-quiz-platform.pentacoresolutions.in` (inspect via `http://localhost:4040`). Provide your own `NGROK_AUTHTOKEN` environment variable before running if you need to override the bundled token.
 
 ## 🧼 Manual Setup
 Prefer to wire things up yourself? Follow these steps:
@@ -220,29 +220,37 @@ docker-compose up -d --build
 ```
 Services boot on:
 - Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:5000/api`
+- Backend API: `http://localhost:4000/api`
+- Public tunnel (ngrok): `https://smart-quiz-platform.pentacoresolutions.in`
 - MongoDB: `mongodb://localhost:27017`
 
 ### Environment Variables
 Create `.env` files in both `backend/` and `frontend/` directories using the provided examples. Key backend variables include:
 
 ```env
-PORT=5000
+PORT=4000
 NODE_ENV=production
-MONGODB_URI=mongodb://localhost:27017/quiz-platform
+MONGO_URI=mongodb://localhost:27017/quiz-proctor
 JWT_SECRET=change-me
 JWT_REFRESH_SECRET=change-me-too
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
-FRONTEND_URL=http://localhost:3000
+CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
+CORS_ALLOW_ALL=false
+CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
+FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
 ```
+
+> If you expose the app through a different domain, update both `CLIENT_ORIGIN` and `FRONTEND_URL`. You can override the ngrok authtoken by exporting `NGROK_AUTHTOKEN` before running the setup scripts.
 
 Frontend variables:
 ```env
-VITE_API_URL=http://localhost:5000/api
-VITE_WS_URL=ws://localhost:5000
+VITE_API_BASE_URL=http://localhost:4000
+VITE_WS_URL=ws://localhost:4000
+VITE_API_PORT=4000
+VITE_PUBLIC_TUNNEL_URL=https://smart-quiz-platform.pentacoresolutions.in
 ```
 
 ## 🛣️ Roadmap
