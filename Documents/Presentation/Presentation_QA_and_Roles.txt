@@ -1,0 +1,88 @@
+Online Quiz Assessment Platform – Evaluator Q&A and Team Presentation Notes
+==========================================================================
+
+SECTION A: Likely Evaluator Questions with Suggested Answers
+------------------------------------------------------------
+
+1. Architecture Overview
+   Q: Describe the high-level architecture of your platform.
+   A: The system follows a containerized MERN architecture. The frontend is a React 18 + Vite SPA served behind Nginx, the backend is an Express.js API running on Node.js 18, and MongoDB stores quizzes, results, and proctoring telemetry. Docker Compose orchestrates the services with optional ngrok tunneling, while Socket.io provides real-time proctoring channels.
+
+2. Security Controls
+   Q: How do you ensure secure authentication and prevent cheating?
+   A: Authentication uses JWT access/refresh tokens with optional 2FA via the `/api/2fa` routes, plus OAuth support through Passport.js. Anti-cheating measures include AI-assisted face verification (face-api.js), keystroke/tab-switch monitoring via `aiDetectionService`, role-based route guards, rate limiting middleware, and audit logging through `AuditLog` documents.
+
+3. Proctoring Accuracy
+   Q: How reliable is your AI proctoring module?
+   A: We combine multiple signals—face presence, multi-face detection, gaze deviation, and browser focus. Each event is timestamped and assigned severity before being stored in `ProctoringEvent` documents. Thresholds are tunable so instructors can balance sensitivity versus false positives. Manual review dashboards let faculty override or confirm flagged events.
+
+4. Adaptive Quiz Behavior
+   Q: What differentiates your quiz engine from standard LMS quizzes?
+   A: Beyond static question orderings, we support adaptive difficulty via `Quiz.getNextAdaptiveQuestion()`, pool-based randomization, timeboxing, and dynamic grading rules (partial credit, curve adjustments). Instructors can toggle these behaviors per quiz without deploying new code.
+
+5. Data Privacy & Compliance
+   Q: How do you address privacy concerns, especially with biometric data?
+   A: We encrypt credentials with bcrypt, sanitize payloads with `express-mongo-sanitize`, and isolate biometric templates in encrypted collections. The system follows NIST SP 800-63B guidance on digital identity. We log access to sensitive data and provide controls for data retention or deletion.
+
+6. Scalability Strategy
+   Q: Can this platform scale for an entire university cohort?
+   A: Yes. Services are stateless and containerized, so horizontal scaling is straightforward. MongoDB can be hosted on Atlas or replica sets. Socket.io namespaces allow partitioning by exam sessions. We also expose `/health` endpoints for load balancers and implement structured logging for observability.
+
+7. Testing & Reliability
+   Q: What testing strategy did you adopt?
+   A: Backend Jest + Supertest suites cover controllers, authentication, and services (see `backend/tests/app.test.js`). Frontend Vitest + Testing Library cover Redux slices and UI flows. Rate limiter and error-handler tests ensure resilience. Docker smoke tests validate infrastructure scripts before demos.
+
+8. Failure Handling
+   Q: What happens if a proctoring sensor fails mid-exam?
+   A: We log sensor anomalies and allow instructors to manually override scores. The client attempts to reconnect sockets; if webcam access fails, students are prompted to restore it. All status changes are recorded in audit logs for post-exam review.
+
+9. Integration Potential
+   Q: Can your solution integrate with existing LMS systems?
+   A: The REST API and WebSocket endpoints are documented, and we plan to add LTI/SCORM connectors. The modular service layer (`backend/src/services`) allows plugging in external identity providers, analytics pipelines, or LMS event listeners.
+
+10. Future Enhancements
+    Q: What improvements are planned next?
+    A: Upcoming work includes pose estimation, audio sentiment analysis, LMS/SIS connectors, offline-capable mobile apps, and federated learning for privacy-preserving AI updates.
+
+
+SECTION B: Presentation Flow for a Five-Student Team
+----------------------------------------------------
+
+Student 1 – Project Lead & Problem Context
+   • Introduce the problem statement, motivation, and objectives.
+   • Highlight gaps in current LMS proctoring solutions and regulatory drivers.
+   • Explain overall architecture diagram and tech stack choices.
+   • Prepared to answer: why MERN, deployment topology, stakeholder analysis.
+
+Student 2 – Backend & Security Specialist
+   • Deep dive into Express routes, controllers, and service abstractions.
+   • Walk through authentication flow, JWT handling, 2FA, and rate limiting.
+   • Explain MongoDB schema design for `Quiz`, `Result`, `ProctoringEvent`, and audit logs.
+   • Prepared to answer: API versioning, security hardening, database optimization.
+
+Student 3 – AI Proctoring & Analytics Engineer
+   • Demonstrate face enrollment, live proctoring alerts, and violation scoring logic.
+   • Discuss `aiDetectionService`, Socket.io event broadcasting, and analytics aggregation.
+   • Present dashboards showing proctoring insights and performance metrics.
+   • Prepared to answer: model accuracy, handling false positives, analytics pipelines.
+
+Student 4 – Frontend & UX Designer
+   • Tour the React UI (landing page, dashboard, quiz player, result view).
+   • Explain Redux Toolkit usage, route guards, and responsive Tailwind design.
+   • Show accessibility features and user guidance for candidates and instructors.
+   • Prepared to answer: component structure, state management, usability testing.
+
+Student 5 – DevOps & Testing Coordinator
+   • Describe Docker Compose setup, environment variables, and deployment scripts.
+   • Cover testing strategy, CI/CD pipeline, and observability with `advancedLogger`.
+   • Share risk mitigations, rollback strategy, and documentation resources.
+   • Prepared to answer: scalability, monitoring, disaster recovery plan.
+
+Group Coordination Notes
+   • Use a single cohesive slide deck with color-coded ownership for each student.
+   • Transition cues: each student summarizes previous section before handing over.
+   • Keep a live demo ready in Docker; have seed data preloaded for consistent results.
+   • Maintain backup screenshots and logs in case of connectivity issues.
+   • Rehearse time allotment (~4 minutes per section plus 5 minutes Q&A).
+
+End of Document
