@@ -36,6 +36,7 @@ CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
 CORS_ALLOW_ALL=false
 CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
 LOG_LEVEL=info
+USE_DOCKER=false
 EOF
         else
             cat <<'EOF' > "$target_file"
@@ -134,8 +135,15 @@ sleep 15
 echo -e "${GREEN}✓ Services should be ready${NC}"
 echo ""
 
+echo -e "${YELLOW}[5/6] Question Bank System...${NC}"
+echo -e "${GREEN}✓ Question generation ready with pre-built question bank${NC}"
+echo -e "${WHITE}  • 4000+ questions across JavaScript, Python, Java, C++${NC}"
+echo -e "${WHITE}  • Topic-based filtering and difficulty levels${NC}"
+echo -e "${WHITE}  • Multiple question types (MCQ, True/False, Fill-in-the-blank, Coding)${NC}"
+echo ""
+
 # Load Demo Data
-echo -e "${YELLOW}[5/5] Loading demo data...${NC}"
+echo -e "${YELLOW}[6/6] Loading demo data...${NC}"
 echo -e "${CYAN}  This will create sample users, quizzes, and results.${NC}"
 echo ""
 
@@ -190,12 +198,18 @@ echo -e "${WHITE}  • Admin:      ${NC}${CYAN}admin@quiz.com${NC} / ${CYAN}admi
 echo -e "${WHITE}  • Instructor: ${NC}${CYAN}instructor@quiz.com${NC} / ${CYAN}instructor123${NC}"
 echo -e "${WHITE}  • Students:   ${NC}${CYAN}aman|chetan|vanisha|shashank|yash@student.com${NC} / ${CYAN}student123${NC}"
 echo ""
-echo -e "${WHITE}  Useful Commands:${NC}"
-echo -e "${WHITE}  • View logs:    ${NC}${CYAN}$COMPOSE_CMD logs -f${NC}"
-echo -e "${WHITE}  • Stop all:     ${NC}${CYAN}$COMPOSE_CMD down${NC}"
-echo -e "${WHITE}  • Restart:      ${NC}${CYAN}$COMPOSE_CMD restart${NC}"
+echo -e "${WHITE}  Question Generation:${NC}"
+echo -e "${WHITE}  • Generate quizzes with the question bank${NC}"
+echo -e "${WHITE}  • Go to: Manage Quizzes > Generate Questions${NC}"
+echo -e "${WHITE}  • 4000+ questions, topic-based, multiple types${NC}"
 echo ""
-echo -e "${WHITE}  Documentation: ${NC}${CYAN}README.md${NC}"
+echo -e "${WHITE}  Useful Commands:${NC}"
+echo -e "${WHITE}  • View logs:       ${NC}${CYAN}$COMPOSE_CMD logs -f${NC}"
+echo -e "${WHITE}  • Stop all:        ${NC}${CYAN}$COMPOSE_CMD down${NC}"
+echo -e "${WHITE}  • Restart:         ${NC}${CYAN}$COMPOSE_CMD restart${NC}"
+echo ""
+echo -e "${WHITE}  Documentation:${NC}"
+echo -e "${WHITE}  • README.md - Full documentation${NC}"
 echo ""
 echo -e "${GRAY}  Press any key to exit...${NC}"
 read -n 1 -s

@@ -21,8 +21,8 @@ echo.
 
 REM Prepare environment files
 echo [2/5] Preparing environment files...
-call :EnsureEnv "..\backend" "backend"
-call :EnsureEnv "..\frontend" "frontend"
+call :EnsureEnv "..\..\backend" "backend"
+call :EnsureEnv "..\..\frontend" "frontend"
 echo.
 
 REM Start Docker Compose services
@@ -31,9 +31,9 @@ echo   This will start MongoDB, Backend, and Frontend containers.
 echo   Please wait, this may take a few minutes on first run...
 echo.
 
-cd ..
+cd ..\..
 docker-compose up -d --build
-cd "RUN ON WINDOWS"
+cd scripts\windows
 
 if %errorlevel% == 0 (
     echo ✓ All services started successfully!
@@ -51,14 +51,21 @@ timeout /t 15 /nobreak > nul
 echo ✓ Services should be ready
 echo.
 
+echo [5/6] Question Bank System...
+echo   ✓ Question generation ready with pre-built question bank
+echo   • 4000+ questions across JavaScript, Python, Java, C++
+echo   • Topic-based filtering and difficulty levels
+echo   • Multiple question types (MCQ, True/False, Fill-in-the-blank, Coding)
+echo.
+
 REM Load demo data
-echo [5/5] Loading demo data...
+echo [6/6] Loading demo data...
 echo   This will create sample users, quizzes, and results.
 echo.
 
-cd ..
+cd ..\..
 docker-compose exec -T backend node src/utils/seedData.js
-cd "RUN ON WINDOWS"
+cd scripts\windows
 
 if %errorlevel% == 0 (
     echo.
@@ -97,11 +104,16 @@ echo   • Instructor: instructor@quiz.com / instructor123
 echo   • Students:   aman^|chetan^|vanisha^|shashank^|yash@student.com / student123
 echo.
 echo   Useful Commands:
-echo   • View logs:    docker-compose logs -f
-echo   • Stop all:     docker-compose down
-echo   • Restart:      docker-compose restart
+echo   • View logs:       docker-compose logs -f
+echo   • Stop all:        docker-compose down
+echo   • Restart:         docker-compose restart
 echo.
-echo   Documentation: README.md
+echo   Question Generation:
+echo   • Generate quizzes with the question bank
+echo   • Go to: Manage Quizzes ^> Generate Questions
+echo   • 4000+ questions, topic-based, multiple types
+echo.
+echo   Documentation: README.md ^| docs\setup\GETTING_STARTED.md
 echo.
 echo   Press any key to exit...
 pause > nul
@@ -130,11 +142,13 @@ if /I "%label%"=="backend" (
         echo MONGO_URI=mongodb://mongo:27017/quiz-proctor
         echo JWT_SECRET=supersecretjwt
         echo SESSION_SECRET=supersecretsession
-    echo FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
+        echo FRONTEND_URL=https://smart-quiz-platform.pentacoresolutions.in
         echo CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
         echo CORS_ALLOW_ALL=false
         echo CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
         echo LOG_LEVEL=info
+        echo GEMINI_API_KEY=your-gemini-api-key-here
+        echo USE_DOCKER=false
     )
 ) else (
     > "%dir%\.env" (

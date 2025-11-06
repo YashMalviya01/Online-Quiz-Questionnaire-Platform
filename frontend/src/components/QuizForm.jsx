@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Sparkles } from 'lucide-react';
 import './QuizForm.css';
+import AIQuizGenerator from './AIQuizGenerator';
 
 const defaultCodeLanguage = 'javascript';
 const supportedLanguages = ['javascript', 'typescript', 'python', 'java', 'csharp', 'cpp'];
@@ -464,6 +465,132 @@ const QuizForm = ({
     }));
   };
 
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+
+  const handleAIGeneratedQuestions = (generatedQuestions) => {
+    // Filter out invalid questions and log them
+    const validQuestions = generatedQuestions.filter(q => {
+      // Check for required fields
+      if (!q.questionText || q.questionText.trim() === '') {
+        console.warn('Skipping question with missing questionText:', q);
+        return false;
+      }
+      if (!q.questionType) {
+        console.warn('Skipping question with missing questionType:', q);
+        return false;
+      }
+      return true;
+    });
+
+    if (validQuestions.length === 0) {
+      console.error('No valid questions received');
+      return;
+    }
+
+    // Process and normalize AI-generated questions
+    const normalizedQuestions = validQuestions.map(q => {
+      const question = { ...q };
+      
+      // Ensure maxScore is set
+      if (!question.maxScore || question.maxScore <= 0) {
+        question.maxScore = 1;
+      }
+
+      // Auto-fill correct answers based on question type
+      switch (question.questionType) {
+        case 'multiple-choice':
+          // Ensure options exist
+          if (Array.isArray(question.options) && question.options.length > 0) {
+            // correctAnswer is now an index (number), convert it to the actual answer text
+            if (typeof question.correctAnswer === 'number') {
+              // Validate the index is within bounds
+              if (question.correctAnswer >= 0 && question.correctAnswer < question.options.length) {
+                question.correctAnswer = question.options[question.correctAnswer];
+              } else {
+                console.warn('CorrectAnswer index out of bounds:', question.correctAnswer, 'options length:', question.options.length);
+                question.correctAnswer = question.options[0];
+              }
+            } else if (!question.correctAnswer) {
+              question.correctAnswer = question.options[0];
+            } else if (typeof question.correctAnswer === 'string' && !question.options.includes(question.correctAnswer)) {
+              // If correctAnswer doesn't match any option, try to find it
+              // The AI might return just "B" but options might be "B. tuple"
+              const matchingOption = question.options.find(opt => 
+                opt.startsWith(question.correctAnswer) || 
+                opt.includes(question.correctAnswer) ||
+                question.correctAnswer.includes(opt)
+              );
+              if (matchingOption) {
+                question.correctAnswer = matchingOption;
+              } else {
+                // Last resort: keep original correctAnswer or use first option
+                console.warn('Could not match correct answer to options:', question.correctAnswer, question.options);
+                question.correctAnswer = question.correctAnswer || question.options[0];
+              }
+            }
+          } else {
+            console.warn('Question has no options:', question.questionText);
+            question.options = ['', ''];
+            question.correctAnswer = '';
+          }
+          break;
+
+        case 'true-false':
+          // Ensure True/False options and correct answer
+          question.options = ['True', 'False'];
+          if (!['True', 'False'].includes(question.correctAnswer)) {
+            question.correctAnswer = 'True'; // Default to True
+          }
+          break;
+
+        case 'code':
+          // Ensure code-specific fields are present
+          question.codeLanguage = question.codeLanguage || 'javascript';
+          question.starterCode = question.starterCode || '';
+          question.referenceSolution = question.referenceSolution || '';
+          question.evaluationNotes = question.evaluationNotes || '';
+          break;
+
+        case 'fill-in-blank':
+        case 'fill-in-the-blank':
+          // Normalize the question type to frontend format
+          question.questionType = 'fill-in-blank';
+          // Ensure blank answers array exists
+          if (!Array.isArray(question.blankAnswers) || question.blankAnswers.length === 0) {
+            question.blankAnswers = [''];
+          }
+          question.caseSensitive = question.caseSensitive || false;
+          question.partialCredit = question.partialCredit !== undefined ? question.partialCredit : true;
+          break;
+
+        case 'essay':
+          // Ensure essay-specific fields
+          question.wordLimit = question.wordLimit || '';
+          question.rubric = question.rubric || '';
+          question.sampleAnswer = question.sampleAnswer || '';
+          break;
+
+        default:
+          break;
+      }
+
+      return question;
+    });
+
+    setForm((prev) => {
+      // Check if the current questions array only has one empty question
+      const hasOnlyEmptyQuestion = prev.questions.length === 1 && 
+        prev.questions[0].questionText.trim() === '';
+      
+      return {
+        ...prev,
+        // If there's only an empty question, replace it; otherwise append
+        questions: hasOnlyEmptyQuestion ? normalizedQuestions : [...prev.questions, ...normalizedQuestions]
+      };
+    });
+    setShowAIGenerator(false);
+  };
+
   const removeQuestion = (index) => {
     setForm((prev) => {
       if (prev.questions.length === 1) return prev;
@@ -625,6 +752,54 @@ const QuizForm = ({
             placeholder="Optional (e.g., 3)"
           />
           <small style={{ color: '#6b7280', fontSize: '0.85rem' }}>Leave empty for unlimited attempts</small>
+        </div>
+      </div>
+
+      {/* AI Question Generation Section */}
+      <div style={{ 
+        marginTop: '1.5rem', 
+        marginBottom: '1.5rem', 
+        padding: '1.5rem', 
+        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+        borderRadius: '8px',
+        border: '1px solid rgba(102, 126, 234, 0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: '600', color: '#1f2937' }}>
+              Automated Question Generation
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+              Automatically generate quiz questions from our question bank with pre-filled correct answers and points
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              type="button" 
+              className="add-question-btn"
+              onClick={() => setShowAIGenerator(true)}
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                fontSize: '1rem',
+                fontWeight: '600',
+                boxShadow: '0 4px 6px rgba(102, 126, 234, 0.3)',
+                minWidth: '200px'
+              }}
+            >
+              <Sparkles size={20} />
+              Generate Questions
+            </button>
+            <div style={{ 
+              textAlign: 'center',
+              fontSize: '0.8rem',
+              color: '#4b5563',
+              fontWeight: '600'
+            }}>
+              Question Generator
+            </div>
+          </div>
         </div>
       </div>
       
@@ -1010,6 +1185,13 @@ const QuizForm = ({
         <Plus size={20} />
         Add Another Question
       </button>
+
+      {showAIGenerator && (
+        <AIQuizGenerator
+          onQuestionsGenerated={handleAIGeneratedQuestions}
+          onClose={() => setShowAIGenerator(false)}
+        />
+      )}
 
       {errorMessage && <div className="message error">{errorMessage}</div>}
       {successMessage && <div className="message success">{successMessage}</div>}

@@ -1,0 +1,12 @@
+{
+  "name": "docker-model-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server for Docker Model Runner",
+  "main": "docker-model-proxy.js",
+  "scripts": {
+    "start": "node docker-model-proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

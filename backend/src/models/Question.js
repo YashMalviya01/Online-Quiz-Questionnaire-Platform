@@ -161,6 +161,57 @@ const questionSchema = new mongoose.Schema(
     usageCount: {
       type: Number,
       default: 0
+    },
+    
+    // AI Generation Tracking
+    aiGenerated: {
+      isAIGenerated: {
+        type: Boolean,
+        default: false,
+        index: true
+      },
+      aiSource: {
+        type: String,
+        enum: ['gemini-pro', 'gpt-4', 'gpt-3.5', 'claude', 'other', ''],
+        default: ''
+      },
+      generationDate: {
+        type: Date
+      },
+      topic: {
+        type: String,
+        trim: true
+      },
+      confidence: {
+        type: Number,
+        min: 0,
+        max: 1,
+        default: 0
+      },
+      humanReviewed: {
+        type: Boolean,
+        default: false
+      },
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      reviewDate: {
+        type: Date
+      },
+      reviewNotes: {
+        type: String,
+        default: ''
+      },
+      qualityScore: {
+        type: Number,
+        min: 0,
+        max: 100
+      },
+      improvementSuggestions: {
+        type: [String],
+        default: []
+      }
     }
   },
   { timestamps: true }

@@ -105,7 +105,57 @@ const answerSchema = new mongoose.Schema(
       default: 0 // in seconds
     },
     startedAt: Date,
-    answeredAt: Date
+    answeredAt: Date,
+    
+    // AI Detection for Code Answers
+    aiDetection: {
+      analyzed: {
+        type: Boolean,
+        default: false
+      },
+      aiScore: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      compositeScore: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      isAIGenerated: {
+        type: Boolean,
+        default: false
+      },
+      confidence: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      indicators: [{
+        type: {
+          type: String
+        },
+        severity: String,
+        message: String
+      }],
+      recommendation: {
+        type: String,
+        default: ''
+      },
+      detailedAnalysis: {
+        commentRatio: mongoose.Schema.Types.Mixed,
+        variableNaming: mongoose.Schema.Types.Mixed,
+        boilerplate: mongoose.Schema.Types.Mixed,
+        gptFingerprints: mongoose.Schema.Types.Mixed
+      },
+      analyzedAt: {
+        type: Date
+      }
+    }
   },
   { _id: false }
 );

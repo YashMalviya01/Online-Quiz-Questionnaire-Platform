@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const logger = require('../utils/logger');
 
 /**
  * AI-powered code plagiarism detection service
@@ -206,7 +205,7 @@ exports.detectPlagiarism = async (code, previousSubmissions = []) => {
     const isPlagiarized = riskScore > 50;
     const confidence = Math.min(riskScore, 100);
 
-    logger.info('Plagiarism detection completed', {
+    console.log('Plagiarism detection completed', {
       fingerprint,
       matchesFound: matches.length,
       maxSimilarity,
@@ -230,72 +229,405 @@ exports.detectPlagiarism = async (code, previousSubmissions = []) => {
     };
 
   } catch (error) {
-    logger.error('Plagiarism detection error:', error);
+    console.error('Plagiarism detection error:', error);
     throw error;
   }
 };
 
 /**
- * Detect AI-generated code
+ * Analyze comment-to-code ratio
+ */
+function analyzeCommentRatio(code) {
+  const lines = code.split('\n');
+  const codeLines = lines.filter(line => line.trim().length > 0);
+  
+  const commentLines = lines.filter(line => {
+    const trimmed = line.trim();
+    return trimmed.startsWith('//') || 
+           trimmed.startsWith('/*') ||
+           trimmed.startsWith('*') ||
+           trimmed.startsWith('#');
+  });
+  
+  const multiLineComments = (code.match(/\/\*[\s\S]*?\*\//g) || []);
+  const multiLineCommentLines = multiLineComments.reduce((sum, comment) => {
+    return sum + comment.split('\n').length;
+  }, 0);
+  
+  const totalCommentLines = commentLines.length + multiLineCommentLines;
+  const ratio = codeLines.length > 0 ? totalCommentLines / codeLines.length : 0;
+  
+  return {
+    commentLines: totalCommentLines,
+    codeLines: codeLines.length,
+    ratio: Math.round(ratio * 100) / 100,
+    percentage: Math.round(ratio * 10000) / 100
+  };
+}
+
+/**
+ * Analyze variable naming patterns for AI fingerprints
+ */
+function analyzeVariableNaming(code) {
+  const patterns = {
+    veryLongNames: [],
+    descriptiveNames: [],
+    camelCaseNames: [],
+    underscoreNames: [],
+    singleLetterNames: [],
+    genericNames: []
+  };
+  
+  // Extract variable declarations
+  const varPatterns = [
+    /(?:let|const|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,
+    /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,
+    /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g,
+    /def\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g // Python
+  ];
+  
+  const allVars = new Set();
+  varPatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(code)) !== null) {
+      allVars.add(match[1]);
+    }
+  });
+  
+  const genericKeywords = ['result', 'temp', 'data', 'value', 'item', 'element', 
+                           'response', 'output', 'input', 'obj', 'arr'];
+  
+  allVars.forEach(varName => {
+    // Very long descriptive names (typical of AI)
+    if (varName.length > 20) {
+      patterns.veryLongNames.push(varName);
+    }
+    
+    // Descriptive multi-word names
+    if (varName.length > 10 && /[A-Z]/.test(varName.slice(1))) {
+      patterns.descriptiveNames.push(varName);
+    }
+    
+    // Perfect camelCase
+    if (/^[a-z]+([A-Z][a-z]+)+$/.test(varName)) {
+      patterns.camelCaseNames.push(varName);
+    }
+    
+    // Underscore naming
+    if (varName.includes('_')) {
+      patterns.underscoreNames.push(varName);
+    }
+    
+    // Single letter variables
+    if (varName.length === 1) {
+      patterns.singleLetterNames.push(varName);
+    }
+    
+    // Generic names
+    if (genericKeywords.some(keyword => varName.toLowerCase().includes(keyword))) {
+      patterns.genericNames.push(varName);
+    }
+  });
+  
+  const totalVars = allVars.size;
+  const longNameRatio = totalVars > 0 ? patterns.veryLongNames.length / totalVars : 0;
+  const genericRatio = totalVars > 0 ? patterns.genericNames.length / totalVars : 0;
+  
+  return {
+    patterns,
+    totalVariables: totalVars,
+    longNameRatio: Math.round(longNameRatio * 100) / 100,
+    genericRatio: Math.round(genericRatio * 100) / 100,
+    averageNameLength: totalVars > 0 
+      ? Math.round([...allVars].reduce((sum, v) => sum + v.length, 0) / totalVars) 
+      : 0
+  };
+}
+
+/**
+ * Detect boilerplate code patterns
+ */
+function detectBoilerplate(code) {
+  const boilerplatePatterns = [];
+  let boilerplateScore = 0;
+  
+  // Common boilerplate phrases
+  const phrases = [
+    'This function',
+    'This method',
+    'Initialize',
+    'Constructor',
+    'Helper function',
+    'Utility function',
+    '@param',
+    '@returns',
+    '@throws',
+    'TODO:',
+    'FIXME:',
+    'eslint-disable',
+    'prettier-ignore'
+  ];
+  
+  phrases.forEach(phrase => {
+    if (code.includes(phrase)) {
+      boilerplatePatterns.push(phrase);
+      boilerplateScore += 5;
+    }
+  });
+  
+  // Check for import/require statements ratio
+  const lines = code.split('\n');
+  const importLines = lines.filter(line => 
+    line.trim().startsWith('import ') || 
+    line.trim().startsWith('require(') ||
+    line.trim().startsWith('from ')
+  );
+  
+  if (importLines.length > 10) {
+    boilerplatePatterns.push('excessive_imports');
+    boilerplateScore += 10;
+  }
+  
+  // Check for standard headers/templates
+  const hasStandardHeader = code.includes('Copyright') || 
+                           code.includes('Licensed under') ||
+                           code.includes('Author:');
+  
+  if (hasStandardHeader) {
+    boilerplatePatterns.push('standard_header');
+    boilerplateScore += 15;
+  }
+  
+  return {
+    patterns: boilerplatePatterns,
+    score: boilerplateScore,
+    hasBoilerplate: boilerplateScore > 20
+  };
+}
+
+/**
+ * Detect GPT-style code fingerprints
+ */
+function detectGPTFingerprints(code) {
+  const fingerprints = [];
+  let gptScore = 0;
+  
+  // GPT tends to add explanatory comments above code blocks
+  const explanatoryCommentPattern = /\/\/\s*(This|Here|Now|First|Then|Finally|Note)/gi;
+  const explanatoryComments = code.match(explanatoryCommentPattern) || [];
+  if (explanatoryComments.length > 3) {
+    fingerprints.push({
+      type: 'explanatory_comments',
+      count: explanatoryComments.length,
+      message: 'Multiple explanatory comments detected'
+    });
+    gptScore += 15;
+  }
+  
+  // GPT often uses type hints and annotations
+  const typeHints = (code.match(/:\s*(str|int|float|bool|list|dict|tuple|Any|Optional)/g) || []).length;
+  if (typeHints > 5) {
+    fingerprints.push({
+      type: 'type_annotations',
+      count: typeHints,
+      message: 'Extensive type annotations'
+    });
+    gptScore += 10;
+  }
+  
+  // GPT tends to write complete docstrings
+  const docstringPattern = /'''[\s\S]*?'''|"""[\s\S]*?"""/g;
+  const docstrings = code.match(docstringPattern) || [];
+  if (docstrings.length > 2) {
+    fingerprints.push({
+      type: 'docstrings',
+      count: docstrings.length,
+      message: 'Multiple comprehensive docstrings'
+    });
+    gptScore += 10;
+  }
+  
+  // GPT uses consistent error handling patterns
+  const errorPatterns = [
+    /except\s+\w+\s+as\s+e:/g,
+    /catch\s*\(\s*\w+\s*\)/g,
+    /try\s*{[\s\S]*?}\s*catch/g
+  ];
+  
+  let errorHandlingCount = 0;
+  errorPatterns.forEach(pattern => {
+    const matches = code.match(pattern) || [];
+    errorHandlingCount += matches.length;
+  });
+  
+  if (errorHandlingCount > 2) {
+    fingerprints.push({
+      type: 'error_handling',
+      count: errorHandlingCount,
+      message: 'Comprehensive error handling'
+    });
+    gptScore += 10;
+  }
+  
+  // GPT often includes validation logic
+  const validationKeywords = ['validate', 'check', 'verify', 'ensure', 'assert'];
+  let validationCount = 0;
+  validationKeywords.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\w*\\b`, 'gi');
+    const matches = code.match(regex) || [];
+    validationCount += matches.length;
+  });
+  
+  if (validationCount > 5) {
+    fingerprints.push({
+      type: 'validation_logic',
+      count: validationCount,
+      message: 'Extensive validation logic'
+    });
+    gptScore += 10;
+  }
+  
+  // GPT uses consistent formatting with proper spacing
+  const lines = code.split('\n');
+  const properlySpacedLines = lines.filter(line => {
+    if (line.trim().length === 0) return true;
+    const indent = line.match(/^\s*/)[0].length;
+    return indent % 2 === 0 || indent % 4 === 0;
+  });
+  
+  const spacingRatio = lines.length > 0 ? properlySpacedLines.length / lines.length : 0;
+  if (spacingRatio > 0.95 && lines.length > 20) {
+    fingerprints.push({
+      type: 'perfect_formatting',
+      ratio: spacingRatio,
+      message: 'Near-perfect code formatting'
+    });
+    gptScore += 15;
+  }
+  
+  return {
+    fingerprints,
+    score: gptScore,
+    likelyGPT: gptScore > 30
+  };
+}
+
+/**
+ * Calculate composite AI score with weighted factors
+ */
+function calculateCompositeAIScore(code) {
+  const commentAnalysis = analyzeCommentRatio(code);
+  const variableAnalysis = analyzeVariableNaming(code);
+  const boilerplateAnalysis = detectBoilerplate(code);
+  const gptAnalysis = detectGPTFingerprints(code);
+  
+  // Weighted scoring system
+  let compositeScore = 0;
+  const weights = {
+    commentRatio: 20,
+    variableNaming: 25,
+    boilerplate: 20,
+    gptFingerprints: 35
+  };
+  
+  // Comment ratio scoring (0-20 points)
+  if (commentAnalysis.ratio > 0.4) {
+    compositeScore += weights.commentRatio * 1.0;
+  } else if (commentAnalysis.ratio > 0.25) {
+    compositeScore += weights.commentRatio * 0.7;
+  } else if (commentAnalysis.ratio > 0.15) {
+    compositeScore += weights.commentRatio * 0.4;
+  }
+  
+  // Variable naming scoring (0-25 points)
+  const varScore = (variableAnalysis.longNameRatio * 0.6 + 
+                   variableAnalysis.genericRatio * 0.4) * weights.variableNaming;
+  compositeScore += varScore;
+  
+  // Boilerplate scoring (0-20 points)
+  const boilerplateRatio = Math.min(boilerplateAnalysis.score / 50, 1);
+  compositeScore += boilerplateRatio * weights.boilerplate;
+  
+  // GPT fingerprints scoring (0-35 points)
+  const gptRatio = Math.min(gptAnalysis.score / 60, 1);
+  compositeScore += gptRatio * weights.gptFingerprints;
+  
+  // Normalize to 0-100
+  compositeScore = Math.round(Math.min(compositeScore, 100));
+  
+  return {
+    compositeScore,
+    breakdown: {
+      commentRatio: commentAnalysis,
+      variableNaming: variableAnalysis,
+      boilerplate: boilerplateAnalysis,
+      gptFingerprints: gptAnalysis
+    },
+    weights
+  };
+}
+
+/**
+ * Detect AI-generated code with enhanced heuristics
  */
 exports.detectAIGenerated = async (code) => {
   try {
     const indicators = [];
     let aiScore = 0;
 
-    // Check for overly perfect formatting
+    // Enhanced composite AI score
+    const compositeAnalysis = calculateCompositeAIScore(code);
+    aiScore = compositeAnalysis.compositeScore;
+    
+    // Add detailed indicators based on analysis
+    if (compositeAnalysis.breakdown.commentRatio.ratio > 0.25) {
+      indicators.push({
+        type: 'comment_ratio',
+        severity: compositeAnalysis.breakdown.commentRatio.ratio > 0.4 ? 'high' : 'medium',
+        message: `Comment ratio: ${compositeAnalysis.breakdown.commentRatio.percentage}% (${compositeAnalysis.breakdown.commentRatio.commentLines} comment lines)`,
+        details: compositeAnalysis.breakdown.commentRatio
+      });
+    }
+    
+    if (compositeAnalysis.breakdown.variableNaming.longNameRatio > 0.3) {
+      indicators.push({
+        type: 'variable_naming',
+        severity: compositeAnalysis.breakdown.variableNaming.longNameRatio > 0.5 ? 'high' : 'medium',
+        message: `${Math.round(compositeAnalysis.breakdown.variableNaming.longNameRatio * 100)}% of variables have unusually long names`,
+        details: compositeAnalysis.breakdown.variableNaming
+      });
+    }
+    
+    if (compositeAnalysis.breakdown.boilerplate.hasBoilerplate) {
+      indicators.push({
+        type: 'boilerplate',
+        severity: 'medium',
+        message: `Boilerplate patterns detected: ${compositeAnalysis.breakdown.boilerplate.patterns.join(', ')}`,
+        details: compositeAnalysis.breakdown.boilerplate
+      });
+    }
+    
+    if (compositeAnalysis.breakdown.gptFingerprints.likelyGPT) {
+      compositeAnalysis.breakdown.gptFingerprints.fingerprints.forEach(fp => {
+        indicators.push({
+          type: fp.type,
+          severity: 'high',
+          message: fp.message,
+          details: fp
+        });
+      });
+    }
+
+    // Legacy indicators (keeping for backwards compatibility)
     const lines = code.split('\n');
-    const perfectlyIndented = lines.every(line => {
-      const indent = line.match(/^\s*/)[0].length;
-      return indent % 2 === 0 || indent % 4 === 0;
-    });
     
-    if (perfectlyIndented && lines.length > 10) {
-      indicators.push({
-        type: 'perfect_formatting',
-        message: 'Code shows unusually perfect indentation'
-      });
-      aiScore += 15;
-    }
-
-    // Check for comprehensive comments
-    const commentLines = lines.filter(line => 
-      line.trim().startsWith('//') || 
-      line.trim().startsWith('/*') ||
-      line.trim().startsWith('*')
-    );
-    
-    const commentRatio = commentLines.length / lines.length;
-    if (commentRatio > 0.3) {
-      indicators.push({
-        type: 'excessive_comments',
-        message: 'Unusually high ratio of comments to code'
-      });
-      aiScore += 10;
-    }
-
-    // Check for generic variable names
-    const genericNames = ['result', 'temp', 'data', 'value', 'item', 'element'];
-    const varNames = code.match(/\b(?:let|const|var)\s+(\w+)/g) || [];
-    const genericCount = varNames.filter(v => 
-      genericNames.some(g => v.includes(g))
-    ).length;
-    
-    if (genericCount > 5) {
-      indicators.push({
-        type: 'generic_naming',
-        message: 'High use of generic variable names'
-      });
-      aiScore += 10;
-    }
-
     // Check for docstring patterns
     if (code.includes('/**') && code.includes('@param') && code.includes('@returns')) {
       indicators.push({
         type: 'docstrings',
-        message: 'Professional-level documentation detected'
+        severity: 'medium',
+        message: 'Professional-level JSDoc documentation detected'
       });
-      aiScore += 15;
     }
 
     // Check for error handling patterns
@@ -303,16 +635,17 @@ exports.detectAIGenerated = async (code) => {
     if (tryCatchCount > 2) {
       indicators.push({
         type: 'error_handling',
-        message: 'Comprehensive error handling detected'
+        severity: 'low',
+        message: `${tryCatchCount} try-catch blocks found`
       });
-      aiScore += 10;
     }
 
-    const isAIGenerated = aiScore > 40;
+    const isAIGenerated = aiScore > 50;
     const confidence = Math.min(aiScore, 100);
 
-    logger.info('AI detection completed', {
+    console.log('Enhanced AI detection completed', {
       aiScore,
+      compositeScore: compositeAnalysis.compositeScore,
       indicatorsFound: indicators.length,
       isAIGenerated
     });
@@ -321,16 +654,20 @@ exports.detectAIGenerated = async (code) => {
       isAIGenerated,
       confidence,
       aiScore,
+      compositeScore: compositeAnalysis.compositeScore,
       indicators,
+      detailedAnalysis: compositeAnalysis.breakdown,
       recommendation: isAIGenerated
-        ? 'High probability of AI assistance - manual review recommended'
-        : aiScore > 25
-          ? 'Moderate indicators present - consider review'
-          : 'Appears to be human-written code'
+        ? 'HIGH RISK: Strong indicators of AI-generated code - manual review required'
+        : aiScore > 35
+          ? 'MODERATE RISK: Some AI patterns detected - consider review'
+          : aiScore > 20
+            ? 'LOW RISK: Minor indicators present'
+            : 'MINIMAL RISK: Appears to be human-written code'
     };
 
   } catch (error) {
-    logger.error('AI detection error:', error);
+    console.error('AI detection error:', error);
     throw error;
   }
 };
@@ -361,7 +698,7 @@ exports.analyzeCode = async (code, previousSubmissions = []) => {
     };
 
   } catch (error) {
-    logger.error('Code analysis error:', error);
+    console.error('Code analysis error:', error);
     throw error;
   }
 };

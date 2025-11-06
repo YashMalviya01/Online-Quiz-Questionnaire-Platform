@@ -12,6 +12,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # docker-model-proxy:
+  #   # NOTE: Docker socket mounting doesn't work reliably on Windows
+  #   # Run the proxy on host instead using: node docker-model-proxy/docker-model-proxy.js
+  #   build:
+  #     context: ./docker-model-proxy
+  #   ports:
+  #     - '11435:11435'
+  #   volumes:
+  #     # Mount Docker socket to enable Docker CLI access
+  #     - //var/run/docker.sock:/var/run/docker.sock
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:11435/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+
   backend:
     build:
       context: ./backend
@@ -23,12 +40,37 @@ services:
       NODE_ENV: development
       CORS_ALLOW_ALL: 'false'
       CORS_DOMAIN: https://smart-quiz-platform.pentacoresolutions.in
+      # Docker Model Runner (gpt-oss) - Using host proxy
+      # Proxy runs on host and forwards to Docker Model Runner CLI
+      USE_DOCKER_MODEL: 'true'
+      DOCKER_MODEL: gpt-oss
+      DOCKER_MODEL_ENDPOINT: http://host.docker.internal:11435
+      USE_DOCKER: 'true'
     ports:
       - '4000:4000'
+    volumes:
+      # Mount Docker socket to enable Docker CLI access from container
+      - //var/run/docker.sock:/var/run/docker.sock
     depends_on:
       mongo:
         condition: service_healthy
     restart: unless-stopped
+
+  # llama:
+  #   # NOTE: Llama AI is OPTIONAL. To enable:
+  #   # 1. Run: docker model pull ai/llama3.3:70B-Q4_0
+  #   # 2. Run: docker model serve ai/llama3.3:70B-Q4_0 -p 8000:8000
+  #   # 3. Or use scripts/setup-llama.bat (Windows) or scripts/setup-llama.sh (Mac/Linux)
+  #   # 
+  #   # Llama provides local AI quiz generation (privacy-first, no API costs)
+  #   # Alternative: Use Google Gemini API (faster, cloud-based)
+  #   # Add GEMINI_API_KEY to backend/.env for cloud AI
+  #   image: ai/llama3.3:70B-Q4_0
+  #   ports:
+  #     - '8000:8000'
+  #   restart: unless-stopped
+  #   mem_limit: 16g
+  #   memswap_limit: 20g
 
   frontend:
     build:
@@ -54,5 +96,17 @@ services:
       - frontend
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
 volumes:
   mongo-data:
+  llama-models:
+  ollama-data:

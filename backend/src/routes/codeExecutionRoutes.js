@@ -1,5 +1,6 @@
 const express = require('express');
 const codeExecutionService = require('../services/codeExecutionService');
+const aiDetectionService = require('../services/aiDetectionService');
 const authenticate = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { logAudit } = require('../services/auditService');
@@ -102,6 +103,79 @@ router.post(
       res.status(500).json({
         success: false,
         error: 'Failed to test code',
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Submit code with AI detection
+ */
+router.post(
+  '/submit',
+  authenticate,
+  [
+    body('code').notEmpty().withMessage('Code is required'),
+    body('language').notEmpty().withMessage('Language is required'),
+    body('testCases').isArray().withMessage('Test cases must be an array'),
+    body('questionId').optional().isString(),
+    body('runAIDetection').optional().isBoolean()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { code, language, testCases, questionId, runAIDetection = true } = req.body;
+
+      // Execute code with test cases
+      const executionResult = await codeExecutionService.testCode(code, language, testCases);
+
+      // Run AI detection on the code
+      let aiDetectionResult = null;
+      if (runAIDetection) {
+        try {
+          aiDetectionResult = await aiDetectionService.detectAIGenerated(code);
+        } catch (aiError) {
+          console.error('AI detection error:', aiError);
+          // Continue even if AI detection fails
+        }
+      }
+
+      // Combine results
+      const response = {
+        execution: executionResult,
+        aiDetection: aiDetectionResult,
+        timestamp: new Date().toISOString()
+      };
+
+      // Log submission with AI detection
+      await logAudit({
+        userId: req.user.id,
+        action: 'SUBMIT_CODE',
+        resource: 'Code',
+        details: {
+          language,
+          questionId,
+          totalTests: executionResult.totalTests,
+          passedTests: executionResult.passedTests,
+          aiScore: aiDetectionResult?.aiScore || 0,
+          isAIGenerated: aiDetectionResult?.isAIGenerated || false,
+          executionTime: executionResult.totalExecutionTime
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      });
+
+      res.json(response);
+    } catch (error) {
+      console.error('Code submission error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit code',
         message: error.message
       });
     }

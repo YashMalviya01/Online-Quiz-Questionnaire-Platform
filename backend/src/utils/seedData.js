@@ -465,16 +465,98 @@ const seedDatabase = async () => {
       ]
     );
 
+    // Create AI-generated sample questions
+    const aiGeneratedQuestions = await Question.create([
+      {
+        questionText: 'What is the main purpose of React Hooks?',
+        questionType: 'multiple-choice',
+        options: [
+          'To replace class components with functional components',
+          'To manage state and side effects in functional components',
+          'To create custom HTML elements',
+          'To optimize performance automatically'
+        ],
+        correctAnswer: 'To manage state and side effects in functional components',
+        maxScore: 5,
+        category: 'React',
+        tags: ['react', 'hooks', 'frontend'],
+        difficulty: 'medium',
+        aiGenerated: {
+          isAIGenerated: true,
+          aiSource: 'gemini-pro',
+          generationDate: new Date(),
+          topic: 'React Hooks',
+          confidence: 0.92,
+          humanReviewed: true,
+          reviewedBy: adminUser._id,
+          reviewDate: new Date(),
+          qualityScore: 88,
+          improvementSuggestions: []
+        }
+      },
+      {
+        questionText: 'Write a Python function that checks if a string is a palindrome.',
+        questionType: 'code',
+        codeLanguage: 'python',
+        starterCode: 'def is_palindrome(s):\n    # Write your code here\n    pass',
+        referenceSolution: 'def is_palindrome(s):\n    return s == s[::-1]',
+        maxScore: 10,
+        evaluationNotes: 'Should handle case sensitivity and spaces properly.',
+        category: 'Python',
+        tags: ['python', 'algorithms', 'strings'],
+        difficulty: 'easy',
+        aiGenerated: {
+          isAIGenerated: true,
+          aiSource: 'gemini-pro',
+          generationDate: new Date(),
+          topic: 'Python String Manipulation',
+          confidence: 0.95,
+          humanReviewed: false,
+          qualityScore: 90,
+          improvementSuggestions: ['Consider adding test cases for edge cases']
+        }
+      },
+      {
+        questionText: 'Explain the difference between REST and GraphQL APIs in your own words.',
+        questionType: 'essay',
+        wordLimit: 200,
+        rubric: 'Understanding|Clarity|Examples',
+        sampleAnswer: 'REST uses multiple endpoints with fixed data structures, while GraphQL uses a single endpoint where clients specify exactly what data they need. GraphQL reduces over-fetching but has a steeper learning curve.',
+        maxScore: 8,
+        category: 'API Design',
+        tags: ['api', 'rest', 'graphql'],
+        difficulty: 'hard',
+        aiGenerated: {
+          isAIGenerated: true,
+          aiSource: 'gemini-pro',
+          generationDate: new Date(),
+          topic: 'API Design Patterns',
+          confidence: 0.88,
+          humanReviewed: true,
+          reviewedBy: adminUser._id,
+          reviewDate: new Date(),
+          qualityScore: 85,
+          improvementSuggestions: []
+        }
+      }
+    ]);
+
+    console.log('✅ AI-generated questions created');
+
     // Attach questions to banks
     jsBank.questions.push(
       ...comprehensiveQuestions
         .filter((question) => question.category === 'JavaScript' || question.category === 'Web')
         .map((question) => question._id),
-      ...jsFundamentalsQuestions.map((question) => question._id)
+      ...jsFundamentalsQuestions.map((question) => question._id),
+      aiGeneratedQuestions[0]._id // Add React question to JS bank
     );
     await jsBank.save();
 
-    pythonBank.questions.push(...pythonBasicsQuestions.map((question) => question._id));
+    pythonBank.questions.push(
+      ...pythonBasicsQuestions.map((question) => question._id),
+      aiGeneratedQuestions[1]._id // Add Python question
+    );
     await pythonBank.save();
 
     mathBank.questions.push(...mathDrillQuestions.map((question) => question._id));
@@ -524,7 +606,25 @@ const seedDatabase = async () => {
           textAnswer: 'function sum(a, b) { return a + b; }',
           awardedScore: 10,
           isCorrect: true,
-          needsGrading: false
+          needsGrading: false,
+          aiDetection: {
+            analyzed: true,
+            aiScore: 15,
+            compositeScore: 18,
+            isAIGenerated: false,
+            confidence: 0.82,
+            indicators: [
+              { type: 'commentRatio', severity: 'low', message: 'Low comment density detected' }
+            ],
+            recommendation: 'human_written',
+            detailedAnalysis: {
+              commentRatio: { score: 10, percentage: 0 },
+              variableNaming: { score: 20, averageLength: 3 },
+              boilerplate: { score: 15 },
+              gptFingerprints: { score: 10 }
+            },
+            analyzedAt: new Date()
+          }
         },
         [comprehensiveQuestions[2]._id.toString()]: {
           textAnswer: 'var',
@@ -631,10 +731,30 @@ const seedDatabase = async () => {
           needsGrading: false
         },
         [jsFundamentalsQuestions[3]._id.toString()]: {
-          textAnswer: 'const square = (n) => n * n;',
+          textAnswer: '// This function takes a number and returns its square\nconst square = (number) => {\n  // Calculate the square by multiplying the number by itself\n  const result = number * number;\n  // Return the calculated result\n  return result;\n};',
           awardedScore: 6,
           isCorrect: true,
-          needsGrading: false
+          needsGrading: false,
+          aiDetection: {
+            analyzed: true,
+            aiScore: 75,
+            compositeScore: 72,
+            isAIGenerated: true,
+            confidence: 0.91,
+            indicators: [
+              { type: 'excessiveComments', severity: 'high', message: 'Unusually high comment density' },
+              { type: 'verboseNaming', severity: 'medium', message: 'Overly descriptive variable names' },
+              { type: 'boilerplate', severity: 'medium', message: 'Boilerplate patterns detected' }
+            ],
+            recommendation: 'review_required',
+            detailedAnalysis: {
+              commentRatio: { score: 80, percentage: 45 },
+              variableNaming: { score: 70, averageLength: 8 },
+              boilerplate: { score: 65 },
+              gptFingerprints: { score: 85 }
+            },
+            analyzedAt: new Date()
+          }
         }
       }),
       buildAnswers(jsFundamentalsQuestions, {
@@ -929,5 +1049,26 @@ const seedDatabase = async () => {
     throw error;
   }
 };
+
+// Run if called directly
+if (require.main === module) {
+  const mongoose = require('mongoose');
+  require('dotenv').config();
+  
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => {
+      console.log('Connected to MongoDB for seeding');
+      return seedDatabase();
+    })
+    .then((result) => {
+      console.log('\n✓ Seeding completed successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('✗ Seeding failed:', error);
+      process.exit(1);
+    });
+}
 
 module.exports = seedDatabase;

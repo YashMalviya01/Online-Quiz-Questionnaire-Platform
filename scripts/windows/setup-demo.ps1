@@ -35,6 +35,7 @@ CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:3000
 CORS_ALLOW_ALL=false
 CORS_DOMAIN=https://smart-quiz-platform.pentacoresolutions.in
 LOG_LEVEL=info
+USE_DOCKER=false
 "@
 
 $frontendDefaultEnv = @"
@@ -151,11 +152,19 @@ Write-Host "  Students:" -ForegroundColor White
 Write-Host "    Emails: aman|chetan|vanisha|shashank|yash@student.com" -ForegroundColor Gray
 Write-Host "    Password: student123" -ForegroundColor Gray
 Write-Host ""
-Write-Host " Documentation:" -ForegroundColor Yellow
-Write-Host "  See README.md for full documentation" -ForegroundColor Gray
+Write-Host " Question Generation:" -ForegroundColor Yellow
+Write-Host "  Generate quizzes from 4000+ question bank" -ForegroundColor Gray
+Write-Host "  Go to: Manage Quizzes > Generate Questions" -ForegroundColor Gray
+Write-Host "  Topics: JavaScript, Python, Java, C++, C#, TypeScript" -ForegroundColor Gray
 Write-Host ""
-Write-Host " To stop: docker-compose stop" -ForegroundColor Yellow
-Write-Host "  To cleanup: docker-compose down -v" -ForegroundColor Yellow
+Write-Host " Documentation:" -ForegroundColor Yellow
+Write-Host "  README.md - Full documentation" -ForegroundColor Gray
+Write-Host "  LLAMA_INTEGRATION_GUIDE.md - AI setup guide" -ForegroundColor Gray
+Write-Host ""
+Write-Host " Useful Commands:" -ForegroundColor Yellow
+Write-Host "  docker-compose stop           - Stop all services" -ForegroundColor Gray
+Write-Host "  docker-compose down -v        - Cleanup everything" -ForegroundColor Gray
+Write-Host "  docker-compose logs -f        - View all logs" -ForegroundColor Gray
 Write-Host ""
 
 # Return to original directory

@@ -1,0 +1,703 @@
+{
+  "javascript": [
+    {
+      "questionText": "What is the correct way to declare a variable in JavaScript?",
+      "questionType": "multiple-choice",
+      "options": ["var x = 5;", "variable x = 5;", "x := 5;", "declare x = 5;"],
+      "correctAnswer": "var x = 5;",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to declare a constant in JavaScript?",
+      "questionType": "multiple-choice",
+      "options": ["const", "constant", "final", "immutable"],
+      "correctAnswer": "const",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What does '===' operator check in JavaScript?",
+      "questionType": "multiple-choice",
+      "options": ["Value and type equality", "Only value equality", "Only type equality", "Reference equality"],
+      "correctAnswer": "Value and type equality",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "JavaScript is a case-sensitive language.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which method is used to add elements to the end of an array?",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["push", "push()"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the output of: console.log(typeof null);",
+      "questionType": "multiple-choice",
+      "options": ["object", "null", "undefined", "number"],
+      "correctAnswer": "object",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to create a function in JavaScript?",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["function"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Arrow functions in JavaScript are written using the __ symbol.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["=>", "arrow", "fat arrow"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "NaN stands for 'Not a Number'.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which method removes the last element from an array?",
+      "questionType": "multiple-choice",
+      "options": ["pop()", "remove()", "delete()", "shift()"],
+      "correctAnswer": "pop()",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The 'let' keyword allows you to reassign variables.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What does JSON stand for?",
+      "questionType": "multiple-choice",
+      "options": ["JavaScript Object Notation", "Java Serialized Object Notation", "JavaScript Oriented Notation", "Java Script Online Notation"],
+      "correctAnswer": "JavaScript Object Notation",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which method is used to parse a JSON string?",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["JSON.parse", "parse"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Promises in JavaScript can have three states: pending, fulfilled, and rejected.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What keyword is used to handle errors in JavaScript?",
+      "questionType": "multiple-choice",
+      "options": ["try-catch", "handle-error", "catch-throw", "error-handler"],
+      "correctAnswer": "try-catch",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The method __ converts a JavaScript object to a JSON string.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["JSON.stringify", "stringify"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "JavaScript supports multi-threading natively.",
+      "questionType": "true-false",
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which loop is guaranteed to execute at least once?",
+      "questionType": "multiple-choice",
+      "options": ["do-while", "while", "for", "forEach"],
+      "correctAnswer": "do-while",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The 'this' keyword refers to the object it belongs to.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the correct syntax to create a class in ES6?",
+      "questionType": "multiple-choice",
+      "options": ["class MyClass {}", "function class MyClass() {}", "new class MyClass {}", "create class MyClass {}"],
+      "correctAnswer": "class MyClass {}",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    }
+  ],
+  "python": [
+    {
+      "questionText": "What is the correct file extension for Python files?",
+      "questionType": "multiple-choice",
+      "options": [".py", ".python", ".pt", ".pyt"],
+      "correctAnswer": ".py",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Python is a case-sensitive language.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to define a function in Python?",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["def"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the output of print(type([]))?",
+      "questionType": "multiple-choice",
+      "options": ["<class 'list'>", "<class 'array'>", "<class 'dict'>", "<class 'tuple'>"],
+      "correctAnswer": "<class 'list'>",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Python uses indentation to define code blocks.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to import modules in Python.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["import"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which of the following is NOT a valid Python data type?",
+      "questionType": "multiple-choice",
+      "options": ["char", "int", "float", "str"],
+      "correctAnswer": "char",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Tuples in Python are immutable.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What method adds an element to the end of a list?",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["append", "append()"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which operator is used for floor division in Python?",
+      "questionType": "multiple-choice",
+      "options": ["//", "/", "%", "div"],
+      "correctAnswer": "//",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Dictionary keys in Python must be immutable.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ statement is used to exit a loop prematurely.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["break"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the output of: print(bool([]))?",
+      "questionType": "multiple-choice",
+      "options": ["False", "True", "None", "Error"],
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Python supports multiple inheritance.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ method is called when an object is created.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["__init__", "init"],
+      "caseSensitive": true,
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to handle exceptions in Python?",
+      "questionType": "multiple-choice",
+      "options": ["try-except", "catch-throw", "handle-error", "error-catch"],
+      "correctAnswer": "try-except",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Lambda functions in Python can have multiple expressions.",
+      "questionType": "true-false",
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ function returns the length of an object.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["len", "len()"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the output of: print(3 ** 2)?",
+      "questionType": "multiple-choice",
+      "options": ["9", "6", "8", "Error"],
+      "correctAnswer": "9",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "List comprehensions provide a concise way to create lists.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    }
+  ],
+  "java": [
+    {
+      "questionText": "Java is a platform-independent language.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the correct syntax to output 'Hello World' in Java?",
+      "questionType": "multiple-choice",
+      "options": ["System.out.println(\"Hello World\");", "print(\"Hello World\");", "echo(\"Hello World\");", "Console.WriteLine(\"Hello World\");"],
+      "correctAnswer": "System.out.println(\"Hello World\");",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to define a constant in Java.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["final"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Java supports multiple inheritance through classes.",
+      "questionType": "true-false",
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to inherit a class in Java?",
+      "questionType": "multiple-choice",
+      "options": ["extends", "inherits", "implements", "derives"],
+      "correctAnswer": "extends",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ method is the entry point of a Java program.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["main", "main()"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Java is a case-sensitive language.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the size of int in Java?",
+      "questionType": "multiple-choice",
+      "options": ["32 bits", "16 bits", "64 bits", "8 bits"],
+      "correctAnswer": "32 bits",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to create an object in Java.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["new"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Abstract classes in Java can have constructors.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to prevent method overriding?",
+      "questionType": "multiple-choice",
+      "options": ["final", "static", "const", "private"],
+      "correctAnswer": "final",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to refer to the current object.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["this"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Java allows operator overloading.",
+      "questionType": "true-false",
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the default value of a boolean variable in Java?",
+      "questionType": "multiple-choice",
+      "options": ["false", "true", "0", "null"],
+      "correctAnswer": "false",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to import packages in Java.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["import"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Interfaces in Java can have default methods.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which exception is thrown when dividing by zero in Java?",
+      "questionType": "multiple-choice",
+      "options": ["ArithmeticException", "DivideByZeroException", "MathException", "NumberException"],
+      "correctAnswer": "ArithmeticException",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to handle exceptions in Java.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["try", "catch", "try-catch"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Static methods can access non-static members directly.",
+      "questionType": "true-false",
+      "correctAnswer": "False",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the parent class of all classes in Java?",
+      "questionType": "multiple-choice",
+      "options": ["Object", "Class", "Super", "Parent"],
+      "correctAnswer": "Object",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    }
+  ],
+  "cpp": [
+    {
+      "questionText": "C++ is an extension of the C programming language.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the correct syntax to output 'Hello World' in C++?",
+      "questionType": "multiple-choice",
+      "options": ["cout << \"Hello World\";", "print(\"Hello World\");", "System.out.println(\"Hello World\");", "echo \"Hello World\";"],
+      "correctAnswer": "cout << \"Hello World\";",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ header file is required to use cout in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["iostream", "<iostream>"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "C++ supports multiple inheritance.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which operator is used to access members of a structure or class through a pointer?",
+      "questionType": "multiple-choice",
+      "options": ["->", ".", "::", "*"],
+      "correctAnswer": "->",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to allocate memory dynamically in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["new"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Destructors in C++ are called automatically when an object goes out of scope.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the correct syntax for a destructor in C++?",
+      "questionType": "multiple-choice",
+      "options": ["~ClassName()", "delete ClassName()", "destroy ClassName()", "ClassName~()"],
+      "correctAnswer": "~ClassName()",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to deallocate memory in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["delete"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "C++ allows operator overloading.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which keyword is used to prevent inheritance in C++?",
+      "questionType": "multiple-choice",
+      "options": ["final", "sealed", "const", "static"],
+      "correctAnswer": "final",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to define inline functions in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["inline"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Friend functions can access private members of a class.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What is the scope resolution operator in C++?",
+      "questionType": "multiple-choice",
+      "options": ["::", ".", "->", "::"],
+      "correctAnswer": "::",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ keyword is used to define pure virtual functions in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["virtual", "= 0"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "hard",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Abstract classes in C++ cannot be instantiated.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Which of the following is used for exception handling in C++?",
+      "questionType": "multiple-choice",
+      "options": ["try-catch", "throw-catch", "handle-error", "error-catch"],
+      "correctAnswer": "try-catch",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    },
+    {
+      "questionText": "The __ is called when an object is copied in C++.",
+      "questionType": "fill-in-the-blank",
+      "blankAnswers": ["copy constructor", "constructor"],
+      "caseSensitive": false,
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "Templates in C++ support generic programming.",
+      "questionType": "true-false",
+      "correctAnswer": "True",
+      "maxScore": 1,
+      "difficulty": "medium",
+      "category": "Programming"
+    },
+    {
+      "questionText": "What does STL stand for in C++?",
+      "questionType": "multiple-choice",
+      "options": ["Standard Template Library", "Simple Template Library", "System Template Library", "Static Template Library"],
+      "correctAnswer": "Standard Template Library",
+      "maxScore": 1,
+      "difficulty": "easy",
+      "category": "Programming"
+    }
+  ]
+}

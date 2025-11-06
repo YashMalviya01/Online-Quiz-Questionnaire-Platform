@@ -95,10 +95,10 @@ secrets/
 *.sublime-workspace
 *.sublime-project
 
-# Package managers
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+# Package managers (keep lock files for reproducible builds)
+# package-lock.json  # Uncomment to ignore
+# yarn.lock          # Uncomment to ignore
+# pnpm-lock.yaml     # Uncomment to ignore
 .pnp.*
 .yarn/
 
@@ -206,3 +206,29 @@ local/
 # Miscellaneous
 .vercel
 .turbo
+
+# AI/LLM specific
+ollama-models/
+*.gguf
+*.bin
+model-cache/
+
+# Mac Mini specific
+.ollama/
+/tmp/ollama*.log
+/tmp/quiz-*.log
+
+# Service logs
+/tmp/*.out.log
+/tmp/*.err.log
+
+# LaunchAgents (auto-start configs - keep for documentation)
+# ~/Library/LaunchAgents/
+
+# Scripts generated files
+scripts/**/generated/
+scripts/**/*.generated.*
+
+# Test output
+test-results/
+test-output/
