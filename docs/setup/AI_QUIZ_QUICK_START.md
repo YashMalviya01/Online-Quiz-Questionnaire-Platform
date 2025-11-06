@@ -22,9 +22,11 @@ ollama create quiz-master -f "Online Quiz Questionnaire Platform/ai-training/mod
 ollama list
 ```
 
-### Step 2: Update Backend Config
+### Step 2: Update Backend Config (Optional)
 
-**On Windows**, edit `backend/.env`:
+**By default**, the backend is already configured to use `qwen2.5-coder:7b`.
+
+**If you created the fine-tuned model**, edit `backend/.env`:
 
 Change:
 ```bash
@@ -35,6 +37,8 @@ To:
 ```bash
 OLLAMA_MODEL=quiz-master
 ```
+
+**Note**: The base model `qwen2.5-coder:7b` works great for most use cases. Fine-tuning is optional.
 
 ### Step 3: Start Backend
 

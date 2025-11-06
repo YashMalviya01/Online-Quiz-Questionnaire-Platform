@@ -32,7 +32,8 @@ router.post(
   authenticate,
   authorizeRole('instructor', 'admin'),
   [
-    body('topic').notEmpty().withMessage('Topic is required'),
+    body('topic').optional().isString(),
+    body('customPrompt').optional().isString(),
     body('difficulty').optional().isIn(['easy', 'medium', 'hard']),
     body('count').optional().isInt({ min: 1, max: 20 }),
     body('saveToBank').optional().isBoolean(),
@@ -48,7 +49,8 @@ router.post(
   authenticate,
   authorizeRole('instructor', 'admin'),
   [
-    body('topic').notEmpty().withMessage('Topic is required'),
+    body('topic').optional().isString(),
+    body('customPrompt').optional().isString(),
     body('difficulty').optional().isIn(['easy', 'medium', 'hard']),
     body('count').optional().isInt({ min: 1, max: 20 }),
     body('saveToBank').optional().isBoolean(),
@@ -64,7 +66,8 @@ router.post(
   authenticate,
   authorizeRole('instructor', 'admin'),
   [
-    body('topic').notEmpty().withMessage('Topic is required'),
+    body('topic').optional().isString(),
+    body('customPrompt').optional().isString(),
     body('difficulty').optional().isIn(['easy', 'medium', 'hard']),
     body('count').optional().isInt({ min: 1, max: 20 }),
     body('saveToBank').optional().isBoolean(),
@@ -80,7 +83,8 @@ router.post(
   authenticate,
   authorizeRole('instructor', 'admin'),
   [
-    body('topic').notEmpty().withMessage('Topic is required'),
+    body('topic').optional().isString(),
+    body('customPrompt').optional().isString(),
     body('language').optional().isString(),
     body('difficulty').optional().isIn(['easy', 'medium', 'hard']),
     body('count').optional().isInt({ min: 1, max: 10 }),
@@ -96,7 +100,8 @@ router.post(
   authenticate,
   authorizeRole('instructor', 'admin'),
   [
-    body('topic').notEmpty().withMessage('Topic is required'),
+    body('topic').optional().isString(),
+    body('customPrompt').optional().isString(),
     body('difficulty').optional().isIn(['easy', 'medium', 'hard']),
     body('count').optional().isInt({ min: 1, max: 50 }),
     body('saveToBank').optional().isBoolean(),

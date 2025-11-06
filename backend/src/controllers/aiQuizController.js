@@ -71,23 +71,24 @@ exports.generateMultipleChoice = async (req, res) => {
     // Transform to our Question model format
     const questions = generatedQuestions.map(q => {
       // Handle correctAnswer: could be letter (A/B/C/D) or already the actual option
-      let correctAnswerArray;
+      let correctAnswerValue;
       if (typeof q.correctAnswer === 'string' && q.correctAnswer.length === 1 && /[A-D]/i.test(q.correctAnswer)) {
         // It's a letter (A/B/C/D), convert to option text
         const index = q.correctAnswer.toUpperCase().charCodeAt(0) - 65;
-        correctAnswerArray = [q.options[index]];
+        correctAnswerValue = q.options[index] || q.options[0];
       } else if (Array.isArray(q.correctAnswer)) {
-        correctAnswerArray = q.correctAnswer;
+        // If array, take first element as string for frontend
+        correctAnswerValue = q.correctAnswer[0];
       } else {
         // Assume it's already the option text
-        correctAnswerArray = [q.correctAnswer];
+        correctAnswerValue = q.correctAnswer;
       }
 
       return {
         questionText: q.questionText,
         questionType: q.questionType || 'multiple-choice',
         options: q.options,
-        correctAnswer: correctAnswerArray,
+        correctAnswer: correctAnswerValue, // Now returns string instead of array
         points: difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30,
         timeLimit: q.estimatedTime || 60,
         difficulty,
@@ -150,19 +151,24 @@ exports.generateMultipleChoice = async (req, res) => {
  */
 exports.generateTrueFalse = async (req, res) => {
   try {
-    const { topic, difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated' } = req.body;
+    const { topic, customPrompt, difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated' } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({ error: 'Topic is required' });
+    // Validate: either topic or customPrompt must be provided
+    if (!topic && !customPrompt) {
+      return res.status(400).json({ error: 'Either topic or custom prompt is required' });
     }
 
     if (count < 1 || count > 20) {
       return res.status(400).json({ error: 'Count must be between 1 and 20' });
     }
 
-    const generatedQuestions = await aiService.generateTrueFalseQuestion(topic, difficulty, count);
+    const effectiveTopic = topic || 'Custom Topic';
+    const generatedQuestions = await aiService.generateTrueFalseQuestion(effectiveTopic, difficulty, customPrompt, count);
+    
+    // Ensure we have an array
+    const questionsArray = Array.isArray(generatedQuestions) ? generatedQuestions : [generatedQuestions];
 
-    const questions = generatedQuestions.map(q => ({
+    const questions = questionsArray.map(q => ({
       questionText: q.questionText,
       questionType: 'true-false',
       correctAnswer: q.correctAnswer,
@@ -225,17 +231,19 @@ exports.generateTrueFalse = async (req, res) => {
  */
 exports.generateCoding = async (req, res) => {
   try {
-    const { topic, language = 'javascript', difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated' } = req.body;
+    const { topic, customPrompt, language = 'javascript', difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated' } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({ error: 'Topic is required' });
+    // Validate: either topic or customPrompt must be provided
+    if (!topic && !customPrompt) {
+      return res.status(400).json({ error: 'Either topic or custom prompt is required' });
     }
 
     if (count < 1 || count > 10) {
       return res.status(400).json({ error: 'Count must be between 1 and 10' });
     }
 
-    const generatedQuestions = await aiService.generateCodingQuestion(topic, language, difficulty, count);
+    const effectiveTopic = topic || 'Custom Topic';
+    const generatedQuestions = await aiService.generateCodingQuestion(effectiveTopic, language, difficulty, count, customPrompt);
 
     const questions = generatedQuestions.map(q => ({
       questionText: q.questionText,
@@ -305,18 +313,20 @@ exports.generateCoding = async (req, res) => {
  */
 exports.generateFillInBlank = async (req, res) => {
   try {
-    const { topic, difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated', language = 'javascript' } = req.body;
+    const { topic, customPrompt, difficulty = 'medium', count = 1, saveToBank = false, category = 'AI-Generated', language = 'javascript' } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({ error: 'Topic is required' });
+    // Validate: either topic or customPrompt must be provided
+    if (!topic && !customPrompt) {
+      return res.status(400).json({ error: 'Either topic or custom prompt is required' });
     }
 
     if (count < 1 || count > 20) {
       return res.status(400).json({ error: 'Count must be between 1 and 20' });
     }
 
+    const effectiveTopic = topic || 'Custom Topic';
     // Generate questions using Ollama AI
-    const questions = await aiService.generateFillInBlank(topic, difficulty, count);
+    const questions = await aiService.generateFillInBlank(effectiveTopic, difficulty, count, customPrompt);
 
     // Add metadata and normalize
     const normalizedQuestions = questions.map((q, index) => ({
@@ -449,13 +459,8 @@ exports.generateMixed = async (req, res) => {
       topic, 
       customPrompt,
       difficulty = 'medium',
-      distribution = {
-        multipleChoice: 3,
-        trueFalse: 2,
-        coding: 2,
-        sql: 2,
-        essay: 1
-      },
+      count = 5, // User-requested total question count
+      distribution, // Optional: user can specify exact distribution
       saveToBank = false,
       category = 'AI-Generated'
     } = req.body;
@@ -465,8 +470,42 @@ exports.generateMixed = async (req, res) => {
       return res.status(400).json({ error: 'Topic or custom prompt is required' });
     }
 
+    // If user provides specific distribution, use it
+    // Otherwise, create a balanced distribution based on the count
+    let finalDistribution = distribution;
+    
+    if (!distribution) {
+      // Auto-calculate distribution based on requested count
+      // Prioritize: MCQ, T/F, Coding, Fill-in-blank
+      const requestedCount = parseInt(count) || 5;
+      
+      if (requestedCount <= 2) {
+        finalDistribution = { multipleChoice: requestedCount, trueFalse: 0, coding: 0, sql: 0, essay: 0 };
+      } else if (requestedCount <= 4) {
+        const mcq = Math.ceil(requestedCount * 0.5);
+        const tf = requestedCount - mcq;
+        finalDistribution = { multipleChoice: mcq, trueFalse: tf, coding: 0, sql: 0, essay: 0 };
+      } else {
+        // For 5+ questions, distribute across types
+        const mcq = Math.ceil(requestedCount * 0.4); // 40% MCQ
+        const tf = Math.floor(requestedCount * 0.3); // 30% T/F
+        const code = Math.floor(requestedCount * 0.2); // 20% Coding
+        const remaining = requestedCount - (mcq + tf + code);
+        finalDistribution = { 
+          multipleChoice: mcq, 
+          trueFalse: tf, 
+          coding: code,
+          fillInBlank: remaining,
+          sql: 0, 
+          essay: 0 
+        };
+      }
+      
+      console.log(`Mixed questions: User requested ${requestedCount} total. Using distribution:`, finalDistribution);
+    }
+
     const effectiveTopic = topic || 'Custom Topic';
-    const results = await aiService.generateMixedQuestions(effectiveTopic, difficulty, distribution, customPrompt);
+    const results = await aiService.generateMixedQuestions(effectiveTopic, difficulty, finalDistribution, customPrompt);
 
     const allQuestions = [];
 
@@ -476,7 +515,7 @@ exports.generateMixed = async (req, res) => {
         questionText: q.questionText,
         questionType: 'multiple-choice',
         options: q.options,
-        correctAnswer: [q.options[q.correctAnswer.charCodeAt(0) - 65]],
+        correctAnswer: q.options[q.correctAnswer.charCodeAt(0) - 65] || q.options[0], // Return string, not array
         points: difficulty === 'easy' ? 10 : difficulty === 'medium' ? 20 : 30,
         timeLimit: q.estimatedTime || 60,
         difficulty,
@@ -539,6 +578,31 @@ exports.generateMixed = async (req, res) => {
         createdBy: req.user.id
       });
     });
+
+    // Transform fill-in-blank questions
+    if (results.fillInBlank && results.fillInBlank.length > 0) {
+      results.fillInBlank.forEach(q => {
+        allQuestions.push({
+          questionText: q.questionText,
+          questionType: 'fill-in-the-blank',
+          blankAnswers: q.blankAnswers || [],
+          caseSensitive: q.caseSensitive || false,
+          points: difficulty === 'easy' ? 10 : difficulty === 'medium' ? 15 : 20,
+          timeLimit: q.estimatedTime || 60,
+          difficulty,
+          category,
+          tags: [...(q.tags || []), 'ai-generated', topic],
+          aiGenerated: {
+            isAIGenerated: true,
+            aiSource: 'ollama-qwen2.5-coder',
+            generationDate: new Date(),
+            topic,
+            confidence: 0.90
+          },
+          createdBy: req.user.id
+        });
+      });
+    }
 
     // Transform essay questions
     if (results.essay && results.essay.length > 0) {

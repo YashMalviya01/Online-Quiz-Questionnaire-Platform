@@ -4,7 +4,20 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0', // Listen on all interfaces (allows Docker access)
     port: 5173,
+    strictPort: false,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'smart-quiz.major-project.ngrok.dev',
+      '.ngrok.dev',
+      '.ngrok.io',
+      '192.168.1.27'
+    ],
+    hmr: {
+      clientPort: 5173
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:4000',

@@ -20,8 +20,6 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [aiAvailable, setAIAvailable] = useState(true);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [availableTopics, setAvailableTopics] = useState([]);
-  const [loadingTopics, setLoadingTopics] = useState(false);
 
   const [formData, setFormData] = useState({
     topic: '',
@@ -43,11 +41,6 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
     }
     checkAIAvailability();
   }, []);
-
-  // Fetch topics when language changes
-  React.useEffect(() => {
-    fetchAvailableTopics();
-  }, [formData.language]);
 
   const checkAIAvailability = async () => {
     try {
@@ -74,31 +67,6 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
     }
   };
 
-  const fetchAvailableTopics = async () => {
-    setLoadingTopics(true);
-    try {
-      const token = localStorage.getItem('qp_token');
-      if (!token) return;
-
-      const response = await api.get(`/api/ai-quiz/topics?language=${formData.language}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setAvailableTopics(response.data.topics || []);
-      
-      // Auto-select first topic if no topic is selected
-      if (response.data.topics && response.data.topics.length > 0 && !formData.topic) {
-        setFormData(prev => ({ ...prev, topic: response.data.topics[0] }));
-      }
-    } catch (err) {
-      console.error('Error fetching topics:', err);
-      setAvailableTopics([]);
-    } finally {
-      setLoadingTopics(false);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -108,9 +76,9 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
   };
 
   const generateQuestions = async () => {
-    // Validate: either topic or custom prompt must be provided
-    if (!formData.topic.trim() && !formData.customPrompt.trim()) {
-      setError('Please enter a topic or provide a custom prompt');
+    // Validate: custom prompt must be provided
+    if (!formData.customPrompt.trim()) {
+      setError('Please provide a custom prompt describing what questions you want to generate');
       return;
     }
 
@@ -132,12 +100,11 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
     try {
       let endpoint = '';
       const payload = {
-        topic: formData.topic.trim() || undefined,
         difficulty: formData.difficulty,
         count: parseInt(formData.count),
         saveToBank: formData.saveToBank,
         category: formData.category || 'AI-Generated',
-        customPrompt: formData.customPrompt.trim() || undefined,
+        customPrompt: formData.customPrompt.trim(),
         language: formData.language
       };
 
@@ -282,7 +249,7 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
         {/* Info Message */}
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <span className="font-medium">Note:</span> You must provide either a <strong>Topic</strong> or a <strong>Custom Prompt</strong> (or both) to generate questions.
+            <span className="font-medium">Note:</span> Provide a <strong>Custom Prompt</strong> to describe what questions you want to generate.
           </p>
         </div>
 
@@ -306,74 +273,21 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
             </select>
           </div>
 
-          {/* Topic */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Topic 
-              {!formData.customPrompt.trim() ? (
-                <span className="text-red-500">*</span>
-              ) : (
-                <span className="text-gray-500 text-xs ml-1">(optional)</span>
-              )}
-            </label>
-            {loadingTopics ? (
-              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
-                <Loader className="w-4 h-4 animate-spin text-gray-500" />
-                <span className="text-gray-500 text-sm">Loading topics...</span>
-              </div>
-            ) : availableTopics.length > 0 ? (
-              <select
-                name="topic"
-                value={formData.topic}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">-- Select a Topic --</option>
-                {availableTopics.map((topic) => (
-                  <option key={topic} value={topic}>
-                    {topic}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                name="topic"
-                value={formData.topic}
-                onChange={handleInputChange}
-                placeholder="e.g., Variables and Data Types, Functions, Arrays"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              {availableTopics.length > 0 
-                ? `${availableTopics.length} topics available for ${formData.language}`
-                : formData.customPrompt.trim() 
-                  ? 'Topic is optional when using custom prompt'
-                  : 'Select a programming language to see available topics'}
-            </p>
-          </div>
-
           {/* Custom Prompt */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Custom Prompt 
-              {!formData.topic.trim() ? (
-                <span className="text-red-500">*</span>
-              ) : (
-                <span className="text-gray-500 text-xs ml-1">(optional)</span>
-              )}
+              Custom Prompt <span className="text-red-500">*</span>
             </label>
             <textarea
               name="customPrompt"
               value={formData.customPrompt}
               onChange={handleInputChange}
-              placeholder="e.g., Focus on practical examples, include edge cases, make questions suitable for beginners..."
-              rows={3}
+              placeholder="e.g., Generate questions about React Hooks focusing on useState and useEffect, include practical examples..."
+              rows={4}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Add specific instructions to customize how AI generates questions. Can be used alone or with a topic.
+              Describe the topic and specific requirements for the questions you want to generate.
             </p>
           </div>
 
@@ -475,7 +389,7 @@ const AIQuizGenerator = ({ onQuestionsGenerated, onClose }) => {
         <div className="mt-6 flex gap-3">
           <button
             onClick={generateQuestions}
-            disabled={loading || !formData.topic.trim()}
+            disabled={loading || !formData.customPrompt.trim()}
             className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
           >
             {loading ? (

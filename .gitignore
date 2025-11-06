@@ -232,3 +232,13 @@ scripts/**/*.generated.*
 # Test output
 test-results/
 test-output/
+
+# Archive folder (old docs and scripts)
+.archive/
+
+# Log files
+logs/
+*.log
+
+# macOS system files
+.DS_Store

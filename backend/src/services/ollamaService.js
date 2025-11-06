@@ -7,8 +7,8 @@ const axios = require('axios');
 
 class OllamaService {
   constructor() {
-    // Default to Mac Mini M4 with qwen2.5-coder:7b via ngrok (public access)
-    this.apiEndpoint = process.env.OLLAMA_API_ENDPOINT || 'https://smart-quiz.major-project.ngrok.dev/api/generate';
+    // Use local Ollama instance
+    this.apiEndpoint = process.env.OLLAMA_API_ENDPOINT || 'http://localhost:11434/api/generate';
     this.model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
     this.timeout = 180000; // 3 minutes for larger model
     
@@ -106,6 +106,15 @@ C++: Modern C++, STL, smart pointers, RAII, templates`;
       // Combine system prompt with user prompt
       const fullPrompt = `${this.systemPrompt}\n\n${prompt}`;
       
+      // Calculate appropriate token limit based on requested count in prompt
+      const countMatch = prompt.match(/EXACTLY (\d+) (?:multiple choice )?question/i);
+      const requestedCount = countMatch ? parseInt(countMatch[1]) : 5;
+      
+      // Estimate tokens: ~400 tokens per question (with explanation), add buffer
+      const estimatedTokens = Math.min((requestedCount * 400) + 200, 2000);
+      
+      console.log(`Limiting AI to ${estimatedTokens} tokens for ${requestedCount} question(s)`);
+      
       const response = await axios.post(
         this.apiEndpoint,
         {
@@ -115,7 +124,7 @@ C++: Modern C++, STL, smart pointers, RAII, templates`;
           options: {
             temperature: options.temperature || 0.7,
             top_p: options.top_p || 0.9,
-            num_predict: options.max_tokens || 2000
+            num_predict: options.max_tokens || estimatedTokens // Dynamic token limit
           }
         },
         { timeout: this.timeout }
@@ -199,44 +208,55 @@ C++: Modern C++, STL, smart pointers, RAII, templates`;
     // Handle prompt-only generation
     let prompt;
     if (customPrompt && !topic) {
-      prompt = `Generate ${count} multiple choice question(s) based on the following requirements:
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} multiple choice question(s) based on the following requirements:
 
 ${customPrompt}
 
-Requirements:
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
 - ${difficulty} difficulty level
-- Exactly ${count} question(s)
-- Each question must have exactly 4 options (A, B, C, D)
-- One clear correct answer
-- Brief explanation`;
+- Each question must have exactly 4 options labeled A, B, C, D
+- One clear correct answer (use letter A, B, C, or D)
+- Include brief explanation for each answer
+- Each question MUST have a "questionText" field`;
     } else {
       const additionalInstructions = customPrompt ? `\n\nADDITIONAL REQUIREMENTS:\n${customPrompt}` : '';
       
-      prompt = `Generate ${count} multiple choice question(s) about "${topic}" with ${difficulty} difficulty.
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} multiple choice question(s) about "${topic}" with ${difficulty} difficulty.
 
-For each question, provide:
-1. The question text
-2. Four answer options (A, B, C, D)
-3. The correct answer (letter)${additionalInstructions}
-4. A brief explanation`;
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question must have exactly 4 options labeled A, B, C, D
+- One clear correct answer (use letter A, B, C, or D)
+- Include brief explanation for each answer
+- Each question MUST have a "questionText" field${additionalInstructions}`;
     }
 
     prompt += `
 
-Format your response as JSON array:
+Format your response as VALID JSON array with EXACTLY ${count} question(s):
 [
   {
-    "question": "Question text here?",
+    "questionText": "Clear question here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": "A",
-    "explanation": "Explanation here"
+    "explanation": "Brief explanation here"
   }
 ]
 
-Only return the JSON array, no additional text.`;
+CRITICAL - READ CAREFULLY:
+- You MUST generate ONLY ${count} question(s), NOT ${count + 1} or ${count + 2} or any other number
+- If asked for 5 questions, generate 5, not 9
+- If asked for 2 questions, generate 2, not 9
+- Count the questions in your JSON array before returning
+- The array length MUST be exactly ${count}
+
+IMPORTANT: Return ONLY the JSON array with EXACTLY ${count} questions. NO additional text, NO markdown, NO explanations outside JSON.`;
 
     try {
-      const response = await this.generateCompletion(prompt, { temperature: 0.8 });
+      // Use lower temperature for more focused, controlled generation
+      const response = await this.generateCompletion(prompt, { temperature: 0.5 });
       const cleanedResponse = this.cleanJsonResponse(response);
       
       console.log('MCQ cleaned response preview:', cleanedResponse.substring(0, 200));
@@ -245,8 +265,32 @@ Only return the JSON array, no additional text.`;
         const questions = JSON.parse(cleanedResponse);
         const questionsArray = Array.isArray(questions) ? questions : [questions];
         
-        return questionsArray.map(q => ({
-          questionText: q.question || q.questionText,
+        // Log what AI actually generated
+        console.log(`AI generated ${questionsArray.length} questions (requested: ${count})`);
+        
+        // Validate and strictly limit to requested count
+        const validQuestions = questionsArray
+          .filter(q => q.questionText || q.question)
+          .slice(0, count); // STRICT LIMIT: Only return exact count requested
+        
+        if (validQuestions.length === 0) {
+          throw new Error('No valid questions were generated with questionText field');
+        }
+        
+        // Log if AI generated more than requested
+        if (questionsArray.length > count) {
+          console.warn(`⚠ AI OVER-GENERATED: Generated ${questionsArray.length} questions but USER ASKED FOR ${count}. Returning only first ${count}.`);
+        }
+        
+        if (validQuestions.length < count) {
+          console.warn(`⚠ AI UNDER-GENERATED: Requested ${count} questions but only ${validQuestions.length} valid questions were generated`);
+        }
+        
+        console.log(`✓ Returning exactly ${validQuestions.length} question(s) to user (requested: ${count})`);
+
+        
+        return validQuestions.map(q => ({
+          questionText: q.questionText || q.question,
           questionType: 'multiple-choice',
           options: q.options || [],
           correctAnswer: q.correctAnswer,
@@ -268,24 +312,60 @@ Only return the JSON array, no additional text.`;
   }
 
   /**
-   * Generate true/false question
+   * Generate true/false question(s)
    */
-  async generateTrueFalseQuestion(topic, difficulty = 'medium') {
-    const prompt = `Generate a true/false question about "${topic}" with ${difficulty} difficulty.
+  async generateTrueFalseQuestion(topic, difficulty = 'medium', customPrompt = '', count = 1) {
+    let prompt;
+    if (customPrompt && !topic) {
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} true/false question(s) based on the following requirements:
 
-Provide:
-1. A statement
-2. Whether it's true or false
-3. A brief explanation
+${customPrompt}
 
-Format as JSON:
-{
-  "question": "Statement here",
-  "correctAnswer": "True" or "False",
-  "explanation": "Explanation here"
-}
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field
+- correctAnswer must be either "True" or "False" (exact spelling)
+- Include brief explanation for each`;
+    } else {
+      const additionalInstructions = customPrompt ? `\n\nADDITIONAL REQUIREMENTS:\n${customPrompt}` : '';
+      
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} true/false question(s) about "${topic}" with ${difficulty} difficulty.
 
-Only return the JSON object, no additional text.`;
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field
+- correctAnswer must be either "True" or "False" (exact spelling)
+- Include brief explanation for each${additionalInstructions}`;
+    }
+
+    const formatType = count === 1 ? 'JSON object' : 'JSON array';
+    const example = count === 1 
+      ? `{
+  "questionText": "Clear statement here",
+  "correctAnswer": "True",
+  "explanation": "Brief explanation here"
+}`
+      : `[
+  {
+    "questionText": "Clear statement 1 here",
+    "correctAnswer": "True",
+    "explanation": "Brief explanation here"
+  },
+  {
+    "questionText": "Clear statement 2 here",
+    "correctAnswer": "False",
+    "explanation": "Brief explanation here"
+  }
+]`;
+
+    prompt += `
+
+Format as VALID ${formatType}:
+${example}
+
+IMPORTANT: Return ONLY the ${formatType} with EXACTLY ${count} question(s). NO additional text, NO markdown.`;
 
     try {
       const response = await this.generateCompletion(prompt, { temperature: 0.7 });
@@ -293,15 +373,41 @@ Only return the JSON object, no additional text.`;
       
       try {
         const data = JSON.parse(cleanedResponse);
-        return {
-          question: data.question,
-          type: 'true-false',
-          correctAnswer: data.correctAnswer,
-          explanation: data.explanation || '',
+        const questionsArray = Array.isArray(data) ? data : [data];
+        
+        // Validate and limit to requested count
+        const validQuestions = questionsArray
+          .filter(q => q.questionText || q.question)
+          .slice(0, count);
+        
+        if (validQuestions.length === 0) {
+          throw new Error('No valid true/false questions were generated with questionText field');
+        }
+        
+        // Log if AI generated more than requested
+        if (questionsArray.length > count) {
+          console.warn(`⚠ T/F: AI OVER-GENERATED: Generated ${questionsArray.length} but USER ASKED FOR ${count}. Returning only first ${count}.`);
+        }
+        
+        if (validQuestions.length < count) {
+          console.warn(`⚠ T/F: AI UNDER-GENERATED: Requested ${count} questions but only ${validQuestions.length} valid questions were generated`);
+        }
+        
+        console.log(`✓ T/F: Returning exactly ${validQuestions.length} question(s) to user (requested: ${count})`);
+        
+        const result = validQuestions.map(q => ({
+          questionText: q.questionText || q.question,
+          questionType: 'true-false',
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation || '',
           difficulty: difficulty,
-          topic: topic,
-          category: 'AI-Generated'
-        };
+          topic: topic || 'General',
+          category: 'AI-Generated',
+          tags: [topic || 'ai-generated', difficulty]
+        }));
+        
+        // Return single object if count was 1, otherwise return array
+        return count === 1 ? result[0] : result;
       } catch (parseError) {
         console.error('T/F JSON parse error:', parseError.message);
         console.error('Cleaned response:', cleanedResponse.substring(0, 500));
@@ -309,6 +415,129 @@ Only return the JSON object, no additional text.`;
       }
     } catch (error) {
       console.error('Error generating T/F:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate fill-in-the-blank question(s)
+   */
+  async generateFillInBlank(topic, difficulty = 'medium', count = 1, customPrompt = '') {
+    let prompt;
+    if (customPrompt && !topic) {
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} fill-in-the-blank question(s) based on the following requirements:
+
+${customPrompt}
+
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field with _____ or [blank] marking the blank(s)
+- Provide correct answer(s) for the blank(s)
+- Include brief explanation`;
+    } else {
+      const additionalInstructions = customPrompt ? `\n\nADDITIONAL REQUIREMENTS:\n${customPrompt}` : '';
+      
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} fill-in-the-blank question(s) about "${topic}" with ${difficulty} difficulty.
+
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field with _____ or [blank] marking the blank(s)
+- Provide correct answer(s) for the blank(s)
+- Include brief explanation${additionalInstructions}`;
+    }
+
+    const formatType = count === 1 ? 'JSON object' : 'JSON array';
+    const example = count === 1 
+      ? `{
+  "questionText": "JavaScript is a _____ programming language.",
+  "blankAnswers": ["interpreted"],
+  "caseSensitive": false,
+  "explanation": "JavaScript code is executed by an interpreter, not compiled."
+}`
+      : `[
+  {
+    "questionText": "JavaScript is a _____ programming language.",
+    "blankAnswers": ["interpreted"],
+    "caseSensitive": false,
+    "explanation": "JavaScript code is executed by an interpreter."
+  },
+  {
+    "questionText": "The _____ method adds elements to the end of an array.",
+    "blankAnswers": ["push"],
+    "caseSensitive": true,
+    "explanation": "Array.push() is the method to add items at the end."
+  }
+]`;
+
+    prompt += `
+
+Format as VALID ${formatType}:
+${example}
+
+CRITICAL - READ CAREFULLY:
+- You MUST generate ONLY ${count} question(s), NOT ${count + 1} or ${count + 2} or any other number
+- If asked for 5 questions, generate 5, not 9
+- If asked for 2 questions, generate 2, not 9
+- Count the questions in your response before returning
+- The response MUST contain exactly ${count} question(s)
+
+IMPORTANT: Return ONLY the ${formatType} with EXACTLY ${count} question(s). NO additional text, NO markdown.`;
+
+    try {
+      // Use lower temperature for more controlled generation
+      const response = await this.generateCompletion(prompt, { temperature: 0.5 });
+      const cleanedResponse = this.cleanJsonResponse(response);
+      
+      try {
+        const data = JSON.parse(cleanedResponse);
+        const questionsArray = Array.isArray(data) ? data : [data];
+        
+        // Log what AI actually generated
+        console.log(`Fill-in-Blank: AI generated ${questionsArray.length} questions (requested: ${count})`);
+        
+        // Validate and limit to requested count
+        const validQuestions = questionsArray
+          .filter(q => q.questionText || q.question)
+          .slice(0, count);
+        
+        if (validQuestions.length === 0) {
+          throw new Error('No valid fill-in-the-blank questions were generated with questionText field');
+        }
+        
+        // Log if AI generated more than requested
+        if (questionsArray.length > count) {
+          console.warn(`⚠ Fill-in-Blank: AI OVER-GENERATED: Generated ${questionsArray.length} but USER ASKED FOR ${count}. Returning only first ${count}.`);
+        }
+        
+        if (validQuestions.length < count) {
+          console.warn(`⚠ Fill-in-Blank: AI UNDER-GENERATED: Requested ${count} questions but only ${validQuestions.length} valid questions were generated`);
+        }
+        
+        console.log(`✓ Fill-in-Blank: Returning exactly ${validQuestions.length} question(s) to user (requested: ${count})`);
+        
+        const result = validQuestions.map(q => ({
+          questionText: q.questionText || q.question,
+          questionType: 'fill-in-the-blank',
+          blankAnswers: q.blankAnswers || [q.correctAnswer] || [''],
+          caseSensitive: q.caseSensitive !== undefined ? q.caseSensitive : false,
+          explanation: q.explanation || '',
+          difficulty: difficulty,
+          topic: topic || 'General',
+          category: 'AI-Generated',
+          tags: [topic || 'ai-generated', difficulty]
+        }));
+        
+        // Return array always (for consistency with controller)
+        return result;
+      } catch (parseError) {
+        console.error('Fill-in-blank JSON parse error:', parseError.message);
+        console.error('Cleaned response:', cleanedResponse.substring(0, 500));
+        throw new Error(`Invalid JSON format: ${parseError.message}`);
+      }
+    } catch (error) {
+      console.error('Error generating fill-in-blank:', error);
       throw error;
     }
   }
@@ -362,30 +591,59 @@ Only return the JSON object, no additional text.`;
   /**
    * Generate coding question(s)
    */
-  async generateCodingQuestion(topic, language = 'javascript', difficulty = 'medium', count = 1) {
-    const prompt = `Generate ${count} coding question(s) about "${topic}" in ${language} with ${difficulty} difficulty.
+  async generateCodingQuestion(topic, language = 'javascript', difficulty = 'medium', count = 1, customPrompt = '') {
+    let prompt;
+    if (customPrompt && !topic) {
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} coding question(s) in ${language} based on the following requirements:
 
-For each question, provide:
-1. Problem description
-2. Function signature or starter code
-3. Example test cases (array of strings)
-4. Sample solution
+${customPrompt}
 
-Format as JSON array:
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field
+- Include starter code template
+- Provide test cases
+- Include sample solution`;
+    } else {
+      const additionalInstructions = customPrompt ? `\n\nADDITIONAL REQUIREMENTS:\n${customPrompt}` : '';
+      
+      prompt = `You are a quiz generator. Generate EXACTLY ${count} coding question(s) about "${topic}" in ${language} with ${difficulty} difficulty.
+
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${count} question(s), no more, no less
+- ${difficulty} difficulty level
+- Each question MUST have a "questionText" field
+- Include starter code template
+- Provide test cases
+- Include sample solution${additionalInstructions}`;
+    }
+
+    prompt += `
+
+Format as VALID JSON array with EXACTLY ${count} question(s):
 [
   {
-    "questionText": "Problem description",
-    "starterCode": "function template",
+    "questionText": "Clear problem description",
+    "starterCode": "function template or class skeleton",
     "testCases": ["test case 1", "test case 2"],
-    "solution": "sample solution code",
+    "solution": "complete working solution code",
     "hints": ["hint 1", "hint 2"]
   }
 ]
 
-Only return the JSON array, no additional text.`;
+CRITICAL - READ CAREFULLY:
+- You MUST generate ONLY ${count} question(s), NOT ${count + 1} or ${count + 2} or any other number
+- If asked for 5 questions, generate 5, not 9
+- If asked for 2 questions, generate 2, not 9
+- Count the questions in your JSON array before returning
+- The array length MUST be exactly ${count}
+
+IMPORTANT: Return ONLY the JSON array with EXACTLY ${count} questions. NO additional text, NO markdown, NO code blocks.`;
 
     try {
-      const response = await this.generateCompletion(prompt, { temperature: 0.8 });
+      // Use moderate temperature for coding questions
+      const response = await this.generateCompletion(prompt, { temperature: 0.6 });
       const cleanedResponse = this.cleanJsonResponse(response);
       
       console.log('Coding question cleaned response preview:', cleanedResponse.substring(0, 200));
@@ -394,17 +652,41 @@ Only return the JSON array, no additional text.`;
         const questions = JSON.parse(cleanedResponse);
         const questionsArray = Array.isArray(questions) ? questions : [questions];
         
-        return questionsArray.map(data => ({
+        // Log what AI actually generated
+        console.log(`Coding: AI generated ${questionsArray.length} questions (requested: ${count})`);
+        
+        // Validate and limit to requested count
+        const validQuestions = questionsArray
+          .filter(q => q.questionText || q.question)
+          .slice(0, count);
+        
+        if (validQuestions.length === 0) {
+          throw new Error('No valid coding questions were generated with questionText field');
+        }
+        
+        // Log if AI generated more than requested
+        if (questionsArray.length > count) {
+          console.warn(`⚠ Coding: AI OVER-GENERATED: Generated ${questionsArray.length} but USER ASKED FOR ${count}. Returning only first ${count}.`);
+        }
+        
+        if (validQuestions.length < count) {
+          console.warn(`⚠ Coding: AI UNDER-GENERATED: Requested ${count} questions but only ${validQuestions.length} valid questions were generated`);
+        }
+        
+        console.log(`✓ Coding: Returning exactly ${validQuestions.length} question(s) to user (requested: ${count})`);
+        
+        return validQuestions.map(data => ({
           questionText: data.questionText || data.question,
-          type: 'code',
+          questionType: 'code',
           language: language,
           starterCode: data.starterCode || '',
           testCases: data.testCases || [],
           solution: data.solution || '',
           hints: data.hints || [],
           difficulty: difficulty,
-          topic: topic,
-          category: 'AI-Generated'
+          topic: topic || 'General',
+          category: 'AI-Generated',
+          tags: [topic || 'ai-generated', difficulty, language]
         }));
       } catch (parseError) {
         console.error('Coding question JSON parse error:', parseError.message);
@@ -490,19 +772,22 @@ Only return the JSON array, no additional text.`;
   async generateMixedQuestions(topic, difficulty = 'medium', distribution = {}, customPrompt = '') {
     try {
       const {
-        multipleChoice = 3,
-        trueFalse = 2,
-        coding = 2,
-        sql = 2,
-        essay = 1
+        multipleChoice = 0,
+        trueFalse = 0,
+        coding = 0,
+        fillInBlank = 0,
+        sql = 0,
+        essay = 0
       } = distribution;
 
-      console.log(`Generating mixed questions: MC=${multipleChoice}, TF=${trueFalse}, Coding=${coding}, SQL=${sql}, Essay=${essay}`);
+      const totalRequested = multipleChoice + trueFalse + coding + fillInBlank + sql + essay;
+      console.log(`Generating mixed questions (TOTAL: ${totalRequested}): MC=${multipleChoice}, TF=${trueFalse}, Coding=${coding}, FillInBlank=${fillInBlank}, SQL=${sql}, Essay=${essay}`);
 
       const results = {
         multipleChoice: [],
         trueFalse: [],
         coding: [],
+        fillInBlank: [],
         sql: [],
         essay: []
       };
@@ -522,10 +807,11 @@ Only return the JSON array, no additional text.`;
       // Generate true/false questions
       if (trueFalse > 0) {
         promises.push(
-          Promise.all(Array(trueFalse).fill().map(() => 
-            this.generateTrueFalseQuestion(topic, difficulty)
-          ))
-            .then(questions => { results.trueFalse = questions; })
+          this.generateTrueFalseQuestion(topic, difficulty, customPrompt, trueFalse)
+            .then(questions => { 
+              // Ensure it returns an array
+              results.trueFalse = Array.isArray(questions) ? questions : [questions]; 
+            })
             .catch(err => { console.error('T/F generation failed:', err); results.trueFalse = []; })
         );
       }
@@ -533,9 +819,18 @@ Only return the JSON array, no additional text.`;
       // Generate coding questions
       if (coding > 0) {
         promises.push(
-          this.generateCodingQuestion(topic, 'javascript', difficulty, coding)
+          this.generateCodingQuestion(topic, 'javascript', difficulty, coding, customPrompt)
             .then(questions => { results.coding = questions; })
             .catch(err => { console.error('Coding generation failed:', err); results.coding = []; })
+        );
+      }
+
+      // Generate fill-in-blank questions
+      if (fillInBlank > 0) {
+        promises.push(
+          this.generateFillInBlank(topic, difficulty, fillInBlank, customPrompt)
+            .then(questions => { results.fillInBlank = questions; })
+            .catch(err => { console.error('Fill-in-blank generation failed:', err); results.fillInBlank = []; })
         );
       }
 

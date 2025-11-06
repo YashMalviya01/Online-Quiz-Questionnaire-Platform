@@ -1,362 +1,722 @@
-# 🎓 Online Quiz Assessment Platform# 🎓 Online Quiz Assessment Platform
-
-<div align="center">
-
-<div align="center">
-
-[![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
-
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)[![Stack](https://img.shields.io/badge/Stack-MERN-00b894?style=for-the-badge&logo=mongodb&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
-
-[![Stack](https://img.shields.io/badge/Stack-MERN-00b894?style=for-the-badge&logo=mongodb&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
-
-[![AI Powered](https://img.shields.io/badge/AI-Ollama_Powered-ff6b6b?style=for-the-badge&logo=artificial-intelligence&logoColor=white)](https://ollama.com)[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+# 🎓 Online Quiz & Questionnaire Platform# 🎓 Online Quiz Assessment Platform# 🎓 Online Quiz Assessment Platform
 
 
 
-</div></div>
+A comprehensive, AI-powered quiz platform built with MERN stack, featuring real-time proctoring, automated question generation using Ollama AI, and advanced analytics.<div align="center">
 
 
+
+## 🌟 Features<div align="center">
+
+
+
+### Core Functionality[![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
+
+- 📝 **Multiple Question Types**: Multiple choice, True/False, Fill-in-blank, Coding challenges
+
+- 🤖 **AI-Powered Question Generation**: Automatic question creation using Ollama (qwen2.5-coder:7b)[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)[![Stack](https://img.shields.io/badge/Stack-MERN-00b894?style=for-the-badge&logo=mongodb&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
+
+- 👁️ **Real-Time Proctoring**: Face detection, tab monitoring, copy-paste detection
+
+- 📊 **Advanced Analytics**: Detailed performance metrics and insights[![Stack](https://img.shields.io/badge/Stack-MERN-00b894?style=for-the-badge&logo=mongodb&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform)
+
+- 🔐 **Role-Based Access**: Admin, Instructor, and Student roles
+
+- 🌐 **Public Access**: Ngrok tunnel for remote access[![AI Powered](https://img.shields.io/badge/AI-Ollama_Powered-ff6b6b?style=for-the-badge&logo=artificial-intelligence&logoColor=white)](https://ollama.com)[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
+
+
+### AI Capabilities
+
+- Generate questions for any programming language (JavaScript, Python, Java, C++)
+
+- Custom prompt support for tailored question generation</div></div>
+
+- Multiple difficulty levels (Easy, Medium, Hard)
+
+- Mixed question type generation with smart distribution
+
+- Intelligent count enforcement (generates exactly what you request)
 
 A comprehensive, production-ready online quiz and assessment platform featuring AI-powered quiz generation, real-time proctoring, and advanced analytics. Built with the MERN stack and optimized for Mac Mini M4 with Ollama integration.A modern, production-ready assessment platform that delivers secure testing, AI-powered proctoring, and deep analytics for teams of any size. Built end-to-end with the MERN stack, it ships with polished UX, enterprise security features, and a one-command demo environment.
 
+### Security & Monitoring
 
+- JWT-based authentication
 
----![Dashboard Preview](https://via.placeholder.com/1200x520/667eea/ffffff?text=Online+Quiz+Assessment+Platform)
+- Session management
 
+- Audit logging---![Dashboard Preview](https://via.placeholder.com/1200x520/667eea/ffffff?text=Online+Quiz+Assessment+Platform)
 
+- Enhanced proctoring with face recognition
+
+- Tab switch detection
+
+- Copy-paste prevention
 
 ## ✨ Key Features## 🧭 Table of Contents
 
+## 🚀 Quick Start (Mac Mini M4)
+
 - [Highlights](#-highlights)
-
-### 🎯 Assessment Management- [Tech Stack](#-tech-stack)
-
-- **Multiple Question Types**: Multiple choice, true/false, fill-in-the-blank, coding challenges- [Quick Start](#-quick-start)
-
-- **AI Quiz Generation**: Automatic question generation using fine-tuned Ollama models (quiz-master)- [Manual Setup](#-manual-setup)
-
-- **Comprehensive Question Bank**: Pre-loaded with 448+ questions across JavaScript, Python, Java, and C++- [Demo Accounts](#-demo-accounts)
-
-- **Flexible Quiz Creation**: Build custom quizzes with drag-and-drop question selection- [Core Features](#-core-features)
-
-- **Scheduled Assessments**: Set start times, duration, and availability windows- [Project Structure](#-project-structure)
-
-- [Documentation](#-documentation)
-
-### 🤖 AI-Powered Features- [Testing](#-testing)
-
-- **Ollama Integration**: Local LLM running on Mac Mini M4 for quiz generation- [Development Scripts](#-development-scripts)
-
-- **Fine-tuned Models**: Custom `quiz-master` model optimized for educational content- [Deployment](#-deployment)
-
-- **Smart Question Generation**: Context-aware questions with proper difficulty levels- [Roadmap](#-roadmap)
-
-- **Multi-language Support**: JavaScript, Python, Java, C++ quiz generation- [Contributing](#-contributing)
-
-- [License](#-license)
-
-### 🛡️ Security & Proctoring- [Acknowledgements](#-acknowledgements)
-
-- **JWT Authentication**: Secure token-based authentication with refresh tokens- [Support](#-support)
-
-- **Role-Based Access Control (RBAC)**: Admin, Teacher, Student roles
-
-- **Real-time Proctoring**: Monitor student activity during exams## ✨ Highlights
-
-- **Anti-cheating Measures**: Tab switching detection, copy-paste prevention- 🎯 **Multiple assessment types**: MCQ, true/false, essay, file upload, and code execution.
-
-- **Session Management**: Secure session handling with audit logging- 🛡️ **Layered security**: JWT, 2FA, OAuth 2.0, granular RBAC, and rate limiting.
-
-- 🧠 **AI-driven proctoring**: Face detection, behavioral analytics, tab switching alerts, and violation scoring.
-
-### 📊 Analytics & Reporting- 📊 **Actionable insights**: Student, class, and platform-level dashboards with exportable reports.
-
-- **Detailed Performance Metrics**: Student scores, question-level analytics- 🐳 **Docker-ready**: Launch the full stack (frontend, backend, MongoDB) with a single command.
-
-- **Dashboard Views**: Personalized dashboards for all user roles
-
-- **Export Functionality**: Download reports in CSV/PDF formats## 📦 Tech Stack
-
-- **Historical Tracking**: Performance trends over time### Frontend
-
-- **Class Comparisons**: Compare student performance across cohorts- React 18 with Vite for lightning-fast builds.
-
-- Redux Toolkit, React Router 6, and Axios for stateful, predictable flows.
-
-### 🎨 User Experience- Tailwind CSS, Chart.js/Recharts, Monaco Editor, and face-api.js for rich UI experiences.
-
-- **Modern UI**: Clean, responsive design with Tailwind CSS
-
-- **Real-time Updates**: Socket.io integration for live notifications### Backend
-
-- **Code Editor**: Monaco Editor for coding questions- Node.js 18 + Express.js with modular controllers and services.
-
-- **Rich Text Editor**: Formatted content creation for questions- MongoDB 6 via Mongoose schemas and helpers.
-
-- **Mobile Responsive**: Optimized for all screen sizes- Passport.js (OAuth), JSON Web Tokens, bcrypt, Multer, and Nodemailer.
-
-- Socket.io for real-time updates and proctoring events.
-
----
-
-### DevOps & Tooling
-
-## 🚀 Quick Start- Docker & Docker Compose for local and production parity.
-
-- Nginx as an optional reverse proxy for the frontend.
-
-### Prerequisites- Jest (backend) and Vitest (frontend) for automated testing.
-
-- **Node.js** 18+ and npm/yarn- ESLint + Prettier for consistent style.
-
-- **MongoDB** 6+
-
-- **Git**## 🚀 Quick Start
-
-- **Mac Mini M4** (optional, for AI features with Ollama)
 
 ### Prerequisites
 
-### Option 1: Automated Setup (Mac Mini M4)- **Docker Desktop** (Windows/macOS) or Docker Engine (Linux)
+- Node.js 18+ and npm### 🎯 Assessment Management- [Tech Stack](#-tech-stack)
 
-- **Docker Compose** V2+
+- Docker Desktop
 
-For complete installation with Ollama auto-start on Mac Mini:- **RAM**: 16GB minimum (48GB+ for AI features)
+- Ollama (for AI features)- **Multiple Question Types**: Multiple choice, true/false, fill-in-the-blank, coding challenges- [Quick Start](#-quick-start)
 
-- **Disk**: 10GB free (50GB+ with AI)
+- MongoDB (via Docker)
 
-```bash
+- **AI Quiz Generation**: Automatic question generation using fine-tuned Ollama models (quiz-master)- [Manual Setup](#-manual-setup)
 
-curl -o install.sh https://raw.githubusercontent.com/Chetankhaped/Online-Quiz-Questionnaire-Platform/master/scripts/macos/install-complete.sh### One-Command Demo
+### Automated Setup
 
-chmod +x install.sh
+- **Comprehensive Question Bank**: Pre-loaded with 448+ questions across JavaScript, Python, Java, and C++- [Demo Accounts](#-demo-accounts)
 
-./install.sh**Windows:**
+1. **Install Auto-Start (Run Once)**
 
-``````powershell
+   ```bash- **Flexible Quiz Creation**: Build custom quizzes with drag-and-drop question selection- [Core Features](#-core-features)
 
-cd scripts\windows
+   cd /Users/chetan/Desktop/Online-Quiz-Questionnaire-Platform
 
-This script will:.\setup-demo.bat
+   ./scripts/macos/install-autostart.sh- **Scheduled Assessments**: Set start times, duration, and availability windows- [Project Structure](#-project-structure)
 
-- Install all dependencies (Node.js, MongoDB, Ollama)# OR
+   ```
 
-- Clone and configure the project.\setup-demo.ps1
+- [Documentation](#-documentation)
 
-- Set up fine-tuned AI models```
+2. **Manual Start (Anytime)**
 
-- Configure auto-start services for boot
+   ```bash### 🤖 AI-Powered Features- [Testing](#-testing)
 
-- Create management helper scripts**macOS:**
+   ./scripts/macos/auto-start.sh
 
-```bash
+   ```- **Ollama Integration**: Local LLM with qwen2.5-coder:7b for quiz generation- [Development Scripts](#-development-scripts)
 
-### Option 2: Manual Setupcd scripts/macos
 
-chmod +x setup-demo.sh
 
-#### 1. Clone Repository./setup-demo.sh
+3. **Stop All Services**- **Smart Question Generation**: Context-aware questions with proper difficulty levels- [Deployment](#-deployment)
 
-```bash```
+   ```bash
 
-git clone https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform.git
+   ./scripts/macos/stop.sh- **Multi-language Support**: JavaScript, Python, Java, C++, SQL quiz generation- [Roadmap](#-roadmap)
 
-cd Online-Quiz-Questionnaire-Platform**Linux:**
+   ```
 
-``````bash
+- **Flexible Backend**: Supports both Ollama (local) and Google Gemini API (cloud)- [Contributing](#-contributing)
 
-cd scripts/linux
+### What Gets Started Automatically
 
-#### 2. Backend Setupchmod +x setup-demo.sh
+- ✅ Ollama AI Service (qwen2.5-coder:7b)- [License](#-license)
 
-```bash./setup-demo.sh
+- ✅ MongoDB (Docker container)
 
-cd backend```
+- ✅ Backend API (Node.js/Express on port 4000)### 🛡️ Security & Proctoring- [Acknowledgements](#-acknowledgements)
 
-npm install
+- ✅ Frontend Dev Server (React/Vite on port 5173)
 
-### What Happens?
+- ✅ Ngrok Tunnel (for public access)- **JWT Authentication**: Secure token-based authentication with refresh tokens- [Support](#-support)
 
-# Create .env file
 
-cat > .env << EOF1. ✅ Verifies Docker installation
 
-PORT=40002. ✅ Creates `.env` files from templates
+## 📱 Access URLs- **Role-Based Access Control (RBAC)**: Admin, Teacher, Student roles
 
-NODE_ENV=development3. ✅ Builds and starts containers (MongoDB, Backend, Frontend, Ngrok)
 
-4. ✅ **Optional:** Downloads Llama 3.3 AI model (37GB, ~30-60 min)
 
-MONGO_URI=mongodb://localhost:27017/quiz-proctor5. ✅ Seeds demo data (users, quizzes, results)
+- **Local Frontend**: http://localhost:5173- **Real-time Proctoring**: Monitor student activity during exams## ✨ Highlights
 
-JWT_SECRET=your-super-secret-jwt-key-change-in-production6. ✅ Opens browser to http://localhost:3000
+- **Backend API**: http://localhost:4000
 
-SESSION_SECRET=your-session-secret-key-change-in-production
-
-**During setup, you'll be prompted:**
-
-FRONTEND_URL=http://localhost:5173### Access Points
-
-CLIENT_ORIGIN=http://localhost:5173
-
-- **Frontend**: http://localhost:3000
-
-# Ollama AI Configuration (optional)- **Backend API**: http://localhost:4000/api
-
-OLLAMA_API_ENDPOINT=http://localhost:11434/api/generate- **MongoDB**: localhost:27017
-
-OLLAMA_MODEL=quiz-master- **Public URL**: https://smart-quiz-platform.pentacoresolutions.in
+- **Public URL**: https://smart-quiz.major-project.ngrok.dev- **Anti-cheating Measures**: Tab switching detection, copy-paste prevention- 🎯 **Multiple assessment types**: MCQ, true/false, essay, file upload, and code execution.
 
 - **Ngrok Dashboard**: http://localhost:4040
 
-USE_DOCKER=false
+- **Session Management**: Secure session handling with audit logging- 🛡️ **Layered security**: JWT, 2FA, OAuth 2.0, granular RBAC, and rate limiting.
+
+## 👥 Demo Credentials
+
+- 🧠 **AI-driven proctoring**: Face detection, behavioral analytics, tab switching alerts, and violation scoring.
+
+### Admin
+
+- **Email**: admin@quiz.com### 📊 Analytics & Reporting- 📊 **Actionable insights**: Student, class, and platform-level dashboards with exportable reports.
+
+- **Password**: admin123
+
+- **Detailed Performance Metrics**: Student scores, question-level analytics- 🐳 **Docker-ready**: Launch the full stack (frontend, backend, MongoDB) with a single command.
+
+### Instructor
+
+- **Email**: instructor@quiz.com- **Dashboard Views**: Personalized dashboards for all user roles
+
+- **Password**: instructor123
+
+- **Export Functionality**: Download reports in CSV/PDF formats## 📦 Tech Stack
+
+### Students
+
+- **Email**: chetan@student.com | aman@student.com | vanisha@student.com- **Historical Tracking**: Performance trends over time### Frontend
+
+- **Password**: student123
+
+- **Class Comparisons**: Compare student performance across cohorts- React 18 with Vite for lightning-fast builds.
+
+## 🛠️ Manual Setup (If Needed)
+
+- Redux Toolkit, React Router 6, and Axios for stateful, predictable flows.
+
+### 1. Install Dependencies
+
+### 🎨 User Experience- Tailwind CSS, Chart.js/Recharts, Monaco Editor, and face-api.js for rich UI experiences.
+
+```bash
+
+# Backend- **Modern UI**: Clean, responsive design with Tailwind CSS
+
+cd backend
+
+npm install- **Real-time Updates**: Socket.io integration for live notifications### Backend
+
+
+
+# Frontend- **Code Editor**: Monaco Editor for coding questions- Node.js 18 + Express.js with modular controllers and services.
+
+cd frontend
+
+npm install- **Rich Text Editor**: Formatted content creation for questions- MongoDB 6 via Mongoose schemas and helpers.
+
+```
+
+- **Mobile Responsive**: Optimized for all screen sizes- Passport.js (OAuth), JSON Web Tokens, bcrypt, Multer, and Nodemailer.
+
+### 2. Environment Configuration
+
+- Socket.io for real-time updates and proctoring events.
+
+Backend `.env`:
+
+```env---
+
+PORT=4000
+
+MONGODB_URI=mongodb://localhost:27017/quiz-proctor### DevOps & Tooling
+
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+OLLAMA_API_ENDPOINT=http://localhost:11434/api/generate## 🚀 Quick Start- Docker & Docker Compose for local and production parity.
+
+OLLAMA_MODEL=qwen2.5-coder:7b
+
+CORS_ALLOW_ALL=true- Nginx as an optional reverse proxy for the frontend.
+
+```
+
+### Prerequisites- Jest (backend) and Vitest (frontend) for automated testing.
+
+Frontend `.env`:
+
+```env- **Node.js** 18+ and npm/yarn- ESLint + Prettier for consistent style.
+
+VITE_API_URL=http://localhost:4000
+
+VITE_NGROK_URL=https://smart-quiz.major-project.ngrok.dev- **MongoDB** 6+
+
+```
+
+- **Git**## 🚀 Quick Start
+
+### 3. Start Services
+
+- **Mac Mini M4** (optional, for AI features with Ollama)
+
+```bash
+
+# MongoDB### Prerequisites
+
+docker-compose up -d mongo
+
+### Option 1: Automated Setup (Mac Mini M4)- **Docker Desktop** (Windows/macOS) or Docker Engine (Linux)
+
+# Ollama
+
+open -a Ollama- **Docker Compose** V2+
+
+
+
+# BackendFor complete installation with Ollama auto-start on Mac Mini:- **RAM**: 16GB minimum (48GB+ for AI features)
+
+cd backend && npm start
+
+- **Disk**: 10GB free (50GB+ with AI)
+
+# Frontend
+
+cd frontend && npm run dev```bash
+
+
+
+# Ngrokcurl -o install.sh https://raw.githubusercontent.com/Chetankhaped/Online-Quiz-Questionnaire-Platform/master/scripts/macos/install-complete.sh### One-Command Demo
+
+docker-compose up -d quiz-ngrok
+
+```chmod +x install.sh
+
+
+
+## 📂 Project Structure./install.sh**Windows:**
+
+
+
+`````````powershell
+
+Online-Quiz-Questionnaire-Platform/
+
+├── backend/                 # Node.js/Express backendcd scripts\windows
+
+│   ├── src/
+
+│   │   ├── controllers/    # API controllersThis script will:.\setup-demo.bat
+
+│   │   ├── models/         # MongoDB models
+
+│   │   ├── routes/         # API routes- Install all dependencies (Node.js, MongoDB, Ollama)# OR
+
+│   │   ├── services/       # Business logic (AI, proctoring, etc.)
+
+│   │   ├── middleware/     # Auth, validation, etc.- Clone and configure the project.\setup-demo.ps1
+
+│   │   └── utils/          # Helper functions
+
+│   └── tests/              # Unit tests- Set up fine-tuned AI models```
+
+├── frontend/               # React/Vite frontend
+
+│   ├── src/- Configure auto-start services for boot
+
+│   │   ├── components/     # React components
+
+│   │   ├── pages/          # Page components- Create management helper scripts**macOS:**
+
+│   │   ├── services/       # API services
+
+│   │   ├── store/          # State management```bash
+
+│   │   └── utils/          # Helper functions
+
+│   └── public/             # Static assets### Option 2: Manual Setupcd scripts/macos
+
+├── scripts/
+
+│   └── macos/              # Mac-specific scriptschmod +x setup-demo.sh
+
+│       ├── auto-start.sh   # Auto-start all services
+
+│       ├── stop.sh         # Stop all services#### 1. Clone Repository./setup-demo.sh
+
+│       ├── install-autostart.sh  # Install auto-start
+
+│       ├── logs-mac.sh     # View logs```bash```
+
+│       └── cleanup-mac.sh  # Cleanup logs
+
+├── docs/                   # Documentationgit clone https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform.git
+
+│   ├── ai/                 # AI feature docs
+
+│   └── setup/              # Setup guidescd Online-Quiz-Questionnaire-Platform**Linux:**
+
+├── docker-compose.yml      # Docker services
+
+└── logs/                   # Application logs``````bash
+
+```
+
+cd scripts/linux
+
+## 🎯 AI Question Generation
+
+#### 2. Backend Setupchmod +x setup-demo.sh
+
+### Using the UI
+
+1. Login as Instructor or Admin```bash./setup-demo.sh
+
+2. Go to "Create Quiz"
+
+3. Click "Generate Questions"cd backend```
+
+4. Fill in the form:
+
+   - **Programming Language**: JavaScript, Python, Java, C++npm install
+
+   - **Custom Prompt**: Describe what questions you want
+
+   - **Question Type**: MCQ, T/F, Fill-in-blank, Coding, Mixed### What Happens?
+
+   - **Difficulty**: Easy, Medium, Hard
+
+   - **Number of Questions**: 1-20# Create .env file
+
+5. Click "Generate Questions"
+
+cat > .env << EOF1. ✅ Verifies Docker installation
+
+### Example Custom Prompts
+
+```PORT=40002. ✅ Creates `.env` files from templates
+
+Generate questions about React Hooks focusing on useState and useEffect, 
+
+include practical examples and common pitfallsNODE_ENV=development3. ✅ Builds and starts containers (MongoDB, Backend, Frontend, Ngrok)
+
+
+
+Create Python questions about list comprehensions and lambda functions, 4. ✅ **Optional:** Downloads Llama 3.3 AI model (37GB, ~30-60 min)
+
+emphasize performance considerations
+
+MONGO_URI=mongodb://localhost:27017/quiz-proctor5. ✅ Seeds demo data (users, quizzes, results)
+
+Generate JavaScript questions about async/await and promises, 
+
+include error handling scenariosJWT_SECRET=your-super-secret-jwt-key-change-in-production6. ✅ Opens browser to http://localhost:3000
+
+```
+
+SESSION_SECRET=your-session-secret-key-change-in-production
+
+## 🔧 Useful Commands
+
+**During setup, you'll be prompted:**
+
+### View Logs
+
+```bashFRONTEND_URL=http://localhost:5173### Access Points
+
+./scripts/macos/logs-mac.sh
+
+```CLIENT_ORIGIN=http://localhost:5173
+
+
+
+### Cleanup Logs- **Frontend**: http://localhost:3000
+
+```bash
+
+./scripts/macos/cleanup-mac.sh# Ollama AI Configuration (optional)- **Backend API**: http://localhost:4000/api
+
+```
+
+OLLAMA_API_ENDPOINT=http://localhost:11434/api/generate- **MongoDB**: localhost:27017
+
+### Check Service Status
+
+```bashOLLAMA_MODEL=qwen2.5-coder:7b- **Public URL**: https://smart-quiz-platform.pentacoresolutions.in
+
+# Backend
+
+lsof -i :4000- **Ngrok Dashboard**: http://localhost:4040
+
+
+
+# FrontendUSE_DOCKER=false
+
+lsof -i :5173
 
 EOF> 📖 **For detailed setup instructions**, see [Getting Started Guide](docs/setup/GETTING_STARTED.md)
 
+# MongoDB
+
+docker ps | grep mongo
 
 
-# Start backend## 🧼 Manual Setup
 
-npm run devPrefer to wire things up yourself? Follow these steps:
+# Ollama# Start backend## 🧼 Manual Setup
 
-```
+pgrep -x Ollama
 
-1. **Clone the repository**
+```npm run devPrefer to wire things up yourself? Follow these steps:
+
+
+
+### Restart Individual Services```
+
+```bash
+
+# Backend only1. **Clone the repository**
+
+cd backend && pkill -f "node.*server.js" && npm start > ../logs/backend.log 2>&1 &
 
 #### 3. Frontend Setup   ```bash
 
-```bash   git clone https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform.git
+# Frontend only
+
+cd frontend && pkill -f vite && npm run dev > ../logs/frontend.log 2>&1 &```bash   git clone https://github.com/Chetankhaped/Online-Quiz-Questionnaire-Platform.git
+
+```
 
 cd ../frontend   cd Online-Quiz-Questionnaire-Platform
 
+## 📊 Key Features Details
+
 npm install   ```
 
-2. **Backend**
+### AI Question Generation
 
-# Create .env file   ```bash
+- **5-Layer Count Enforcement**: Guarantees exact number of questions requested2. **Backend**
 
-cat > .env << EOF   cd backend
+- **Dynamic Token Limiting**: Prevents AI over-generation
 
-VITE_API_URL=http://localhost:4000   npm install
+- **Smart Distribution**: Mixed questions intelligently split across types# Create .env file   ```bash
 
-VITE_WS_URL=ws://localhost:4000   cp .env.example .env
+- **Custom Prompts**: Describe exactly what you want
 
-EOF   # Update environment variables
+- **Multiple Languages**: JavaScript, Python, Java, C++cat > .env << EOF   cd backend
+
+
+
+### Proctoring FeaturesVITE_API_URL=http://localhost:4000   npm install
+
+- Face detection using face-api.js
+
+- Real-time tab switch monitoringVITE_WS_URL=ws://localhost:4000   cp .env.example .env
+
+- Copy-paste detection
+
+- Full-screen enforcementEOF   # Update environment variables
+
+- Automatic violation logging
 
    npm run dev
 
-# Start frontend   ```
+### Analytics
 
-npm run dev3. **Frontend**
+- Quiz performance metrics# Start frontend   ```
 
-```   ```bash
+- Question-level analysis
 
-   cd frontend
+- Time spent trackingnpm run dev3. **Frontend**
 
-#### 4. MongoDB Setup   npm install
+- Difficulty-based insights
 
-```bash   cp .env.example .env
+- Student progress tracking```   ```bash
+
+
+
+## 🐛 Troubleshooting   cd frontend
+
+
+
+### Ollama Not Working#### 4. MongoDB Setup   npm install
+
+```bash
+
+# Check if Ollama is running```bash   cp .env.example .env
+
+pgrep -x Ollama
 
 # macOS (with Homebrew)   npm run dev
 
-brew tap mongodb/brew   ```
+# Check Ollama API
 
-brew install mongodb-community4. **MongoDB**
+curl http://localhost:11434/api/tagsbrew tap mongodb/brew   ```
 
-brew services start mongodb-community   ```bash
 
-   docker run -d -p 27017:27017 --name mongodb mongo:6
 
-# Ubuntu/Debian   ```
+# Restart Ollamabrew install mongodb-community4. **MongoDB**
+
+pkill -x Ollama && open -a Ollama
+
+```brew services start mongodb-community   ```bash
+
+
+
+### Backend Not Starting   docker run -d -p 27017:27017 --name mongodb mongo:6
+
+```bash
+
+# Check logs# Ubuntu/Debian   ```
+
+tail -f logs/backend.log
 
 sudo apt-get install mongodb5. (Optional) **Seed demo data**
 
-sudo systemctl start mongodb   ```bash
+# Check if port is in use
 
-   cd backend
+lsof -i :4000sudo systemctl start mongodb   ```bash
 
-# Windows   node src/utils/seedData.js
 
-# Download and install from https://www.mongodb.com/try/download/community   ```
 
-```
+# Kill existing process   cd backend
+
+pkill -f "node.*server.js"
+
+```# Windows   node src/utils/seedData.js
+
+
+
+### MongoDB Connection Issues# Download and install from https://www.mongodb.com/try/download/community   ```
+
+```bash
+
+# Check MongoDB container```
+
+docker ps | grep mongo
 
 ## 📚 Question Bank System
 
-#### 5. Ollama Setup (Optional - for AI Quiz Generation)
+# Restart MongoDB
 
-This platform includes a comprehensive pre-built question bank for quiz generation:
+docker-compose restart mongo#### 5. Ollama Setup (Optional - for AI Quiz Generation)
 
-**On Mac Mini M4:**
 
-```bash### 🎯 Question Bank Features
 
-# Install Ollama- **4000+ Questions**: Pre-built questions across multiple languages
+# View MongoDB logsThis platform includes a comprehensive pre-built question bank for quiz generation:
 
-curl -fsSL https://ollama.com/install.sh | sh- **Multiple Languages**: JavaScript, Python, Java, C++
+docker logs online-quiz-questionnaire-platform-mongo-1
+
+```**On Mac Mini M4:**
+
+
+
+### Frontend Issues```bash### 🎯 Question Bank Features
+
+```bash
+
+# Clear node_modules and reinstall# Install Ollama- **4000+ Questions**: Pre-built questions across multiple languages
+
+cd frontend
+
+rm -rf node_modules package-lock.jsoncurl -fsSL https://ollama.com/install.sh | sh- **Multiple Languages**: JavaScript, Python, Java, C++
+
+npm install
 
 - **Topic-Based**: Organized by programming topics and concepts
 
-# Pull base model- **Offline Ready**: No internet or API keys required
+# Check Vite logs
 
-ollama pull qwen2.5-coder:7b- **Multiple Types**: MCQ, True/False, Fill-in-the-blank, Coding
-
-
-
-# Create fine-tuned quiz-master model### 📊 Question Coverage:
-
-cd ai-training/modelfiles- **JavaScript**: 1000 questions (fundamentals, DOM, async, ES6+)
-
-ollama create quiz-master -f Modelfile.quiz-master- **Python**: 1000 questions (basics, data structures, OOP, libraries)
-
-- **Java**: 1000 questions (syntax, OOP, collections, concurrency)
-
-# Start Ollama server (accessible network-wide)- **C++**: 1000 questions (memory, STL, templates, advanced)
-
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
-
-```### 🚀 How to Use:
-
-1. Login as instructor or admin
-
----2. Navigate to Quiz Configuration
-
-3. Click "Generate Questions"
-
-## 📂 Project Structure4. Select language, topic, difficulty, and question type
-
-5. Questions are automatically generated from the bank
+tail -f ../logs/frontend.log# Pull the model- **Offline Ready**: No internet or API keys required
 
 ```
 
-Online-Quiz-Questionnaire-Platform/### � Question Bank Location:
+ollama pull qwen2.5-coder:7b- **Multiple Types**: MCQ, True/False, Fill-in-the-blank, Coding
 
-├── backend/                    # Node.js/Express backend- `backend/src/data/questionBankGenerated.json`
+## 🔐 Security Notes
 
-│   ├── src/- Service: `backend/src/services/questionBankService.js`
+
+
+- Change JWT_SECRET in production
+
+- Enable HTTPS for production deployment# Verify installation### 📊 Question Coverage:
+
+- Configure CORS properly for production
+
+- Use strong passwordsollama list- **JavaScript**: 1000 questions (fundamentals, DOM, async, ES6+)
+
+- Regular security audits
+
+- Keep dependencies updated- **Python**: 1000 questions (basics, data structures, OOP, libraries)
+
+
+
+## 📈 Performance Optimization- **Java**: 1000 questions (syntax, OOP, collections, concurrency)
+
+
+
+- MongoDB indexes for faster queries# Start Ollama server (accessible network-wide)- **C++**: 1000 questions (memory, STL, templates, advanced)
+
+- React.memo for component optimization
+
+- Lazy loading for routesOLLAMA_HOST=0.0.0.0:11434 ollama serve
+
+- Image optimization
+
+- Code splitting```### 🚀 How to Use:
+
+- CDN for static assets (production)
+
+1. Login as instructor or admin
+
+## 🤝 Contributing
+
+---2. Navigate to Quiz Configuration
+
+1. Fork the repository
+
+2. Create a feature branch3. Click "Generate Questions"
+
+3. Make your changes
+
+4. Submit a pull request## 📂 Project Structure4. Select language, topic, difficulty, and question type
+
+
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.5. Questions are automatically generated from the bank
+
+
+
+## 📄 License```
+
+
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.Online-Quiz-Questionnaire-Platform/### � Question Bank Location:
+
+
+
+## 👨‍💻 Team├── backend/                    # Node.js/Express backend- `backend/src/data/questionBankGenerated.json`
+
+
+
+- **Chetan** - Full Stack Development│   ├── src/- Service: `backend/src/services/questionBankService.js`
+
+- **Team Members** - See [CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)
 
 │   │   ├── controllers/       # Route controllers- Controller: `backend/src/controllers/questionGeneratorController.js`
 
+## 🙏 Acknowledgments
+
 │   │   ├── models/            # MongoDB/Mongoose models
 
-│   │   ├── routes/            # API routes## 🔐 Demo Seed Data & Credentials
+- Ollama for local AI inference
 
-│   │   ├── services/          # Business logic (Ollama, AI services)The repository includes a comprehensive seeding script that wipes existing quiz-related collections and repopulates them with a representative dataset. You can trigger it manually or rely on the platform-specific setup scripts, which call it automatically when spinning up the Docker demo environment.
+- MongoDB for database│   │   ├── routes/            # API routes## 🔐 Demo Seed Data & Credentials
 
-│   │   ├── middleware/        # Auth, validation, error handling
+- React and Vite for frontend
 
-│   │   ├── config/            # Configuration files### Seed the database manually
+- Express.js for backend│   │   ├── services/          # Business logic (Ollama, AI services)The repository includes a comprehensive seeding script that wipes existing quiz-related collections and repopulates them with a representative dataset. You can trigger it manually or rely on the platform-specific setup scripts, which call it automatically when spinning up the Docker demo environment.
 
-│   │   └── utils/             # Helper utilities1. Ensure the backend `.env` file points to your desired MongoDB instance and that the database is reachable.
+- face-api.js for proctoring features
 
-│   ├── tests/                 # Backend tests2. From the `backend/` directory, install dependencies and run migrations if you haven't already:
+- Ngrok for tunneling│   │   ├── middleware/        # Auth, validation, error handling
+
+
+
+## 📞 Support│   │   ├── config/            # Configuration files### Seed the database manually
+
+
+
+For issues, questions, or suggestions:│   │   └── utils/             # Helper utilities1. Ensure the backend `.env` file points to your desired MongoDB instance and that the database is reachable.
+
+- Open an issue on GitHub
+
+- Contact the development team│   ├── tests/                 # Backend tests2. From the `backend/` directory, install dependencies and run migrations if you haven't already:
+
+- Check documentation in `/docs`
 
 │   └── package.json   ```powershell
 
+---
+
 │   cd backend
 
+**Made with ❤️ using MERN Stack + AI**
+
 ├── frontend/                   # React/Vite frontend   npm install
+
+Last Updated: November 6, 2025
 
 │   ├── src/   node src/utils/seedData.js
 
