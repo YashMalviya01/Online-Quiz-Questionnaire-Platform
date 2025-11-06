@@ -258,9 +258,9 @@ cd frontend && npm run dev```bash
 
 
 
-# Ngrokcurl -o install.sh https://raw.githubusercontent.com/Chetankhaped/Online-Quiz-Questionnaire-Platform/master/scripts/macos/install-complete.sh### One-Command Demo
+# Ngrok
 
-docker-compose up -d quiz-ngrok
+docker-compose up -d ngrok
 
 ```chmod +x install.sh
 

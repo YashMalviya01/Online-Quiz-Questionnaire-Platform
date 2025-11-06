@@ -117,9 +117,9 @@ fi
 # Step 3: Start Ngrok (Docker)
 echo ""
 echo -e "${BLUE}[3/5] Starting Ngrok Tunnel...${NC}"
-if ! docker ps | grep -q "quiz-ngrok"; then
+if ! docker ps | grep -q "ngrok"; then
     echo -e "${YELLOW}⚠${NC} Starting Ngrok container..."
-    docker-compose up -d quiz-ngrok
+    docker-compose up -d ngrok
     sleep 5
     echo -e "${GREEN}✓${NC} Ngrok tunnel started"
 else
