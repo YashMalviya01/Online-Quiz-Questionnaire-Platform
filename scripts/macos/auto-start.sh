@@ -126,13 +126,31 @@ else
     echo -e "${GREEN}✓${NC} Ngrok is already running"
 fi
 
-# Get Ngrok URL
-sleep 3
-NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"https://[^"]*' | grep -o 'https://[^"]*' | head -1)
-if [ -n "$NGROK_URL" ]; then
-    echo -e "${GREEN}✓${NC} Ngrok URL: ${BLUE}$NGROK_URL${NC}"
-else
-    echo -e "${YELLOW}⚠${NC} Could not retrieve Ngrok URL (it may still be starting)"
+# Get Ngrok URL with retry logic
+echo -e "${YELLOW}⏳${NC} Waiting for Ngrok to establish tunnel..."
+NGROK_URL="https://unvaporous-jared-nonmonarchal.ngrok-free.dev"
+MAX_RETRIES=10
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    sleep 2
+    TUNNEL_CHECK=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | grep -o '"public_url":"https://[^"]*' | grep -o 'https://[^"]*' | head -1)
+    
+    if [ -n "$TUNNEL_CHECK" ]; then
+        NGROK_URL="$TUNNEL_CHECK"
+        echo -e "${GREEN}✓${NC} Ngrok URL: ${BLUE}$NGROK_URL${NC}"
+        break
+    fi
+    
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+        echo -e "${YELLOW}⏳${NC} Retry $RETRY_COUNT/$MAX_RETRIES..."
+    fi
+done
+
+if [ -z "$TUNNEL_CHECK" ]; then
+    echo -e "${YELLOW}⚠${NC} Using configured domain: ${BLUE}$NGROK_URL${NC}"
+    echo -e "${YELLOW}💡 Check ngrok status at: http://localhost:4040${NC}"
 fi
 
 # Step 4: Start Backend

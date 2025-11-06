@@ -32,7 +32,9 @@ services:
       - OLLAMA_MODEL=qwen2.5-coder:7b
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - JWT_EXPIRE=7d
-      - FRONTEND_URL=https://smart-quiz.major-project.ngrok.dev
+      - FRONTEND_URL=https://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      - CLIENT_ORIGIN=https://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      - CORS_DOMAIN=https://unvaporous-jared-nonmonarchal.ngrok-free.dev
     depends_on:
       - mongodb
     networks:
@@ -50,8 +52,9 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_BASE_URL=https://smart-quiz.major-project.ngrok.dev/api
-      - VITE_WS_URL=wss://smart-quiz.major-project.ngrok.dev
+      - VITE_API_BASE_URL=https://unvaporous-jared-nonmonarchal.ngrok-free.dev/api
+      - VITE_WS_URL=wss://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      - VITE_PUBLIC_TUNNEL_URL=https://unvaporous-jared-nonmonarchal.ngrok-free.dev
     depends_on:
       - backend
     networks:
@@ -80,7 +83,8 @@ services:
     command:
       - "http"
       - "nginx:80"
-      - "--url=smart-quiz.major-project.ngrok.dev"
+      - "--domain=unvaporous-jared-nonmonarchal.ngrok-free.dev"
+      - "--log=stdout"
     environment:
       - NGROK_AUTHTOKEN=2up1MIsXh1y3lw23d3miduvT1N6_3TJFWnuVStwJT7xBqfUN6
     ports:
