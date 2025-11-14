@@ -1,0 +1,218 @@
+ONLINE QUIZ & QUESTIONNAIRE PLATFORM – DEMO SCRIPT
+(College Major Project – 5 Members: Aman, Chetan, Shashank, Vanisha, Yash)
+
+NOTE: Keep the language simple, avoid deep technical details. Focus on story, features, and flow.
+
+-------------------------------------------------
+PART 1 – INTRODUCTION & PROBLEM STATEMENT (AMAN)
+-------------------------------------------------
+[Approx: 2–3 minutes]
+
+1. Greeting & Team Intro
+   - “Good morning/afternoon everyone. We are here to present our major project titled ‘Online Quiz & Questionnaire Platform – AI‑Powered Assessment System with Real-Time Proctoring.’
+   - Our team members are: Aman, Chetan, Shashank, Vanisha and Yash.”
+
+2. Problem Statement – Why this project?
+   - “During and after COVID, most exams shifted online, but many platforms still have some issues:
+     • Cheating is easy without proper monitoring.
+     • Teachers spend a lot of time manually creating question papers.
+     • It’s difficult to analyze student performance in depth.
+   - Our project tries to solve these problems with one integrated platform.”
+
+3. What our system does (High-level overview)
+   - “Our platform is a complete online exam system where:
+     • Teachers and admins can create quizzes and manage students.
+     • Students can give quizzes from anywhere.
+     • The system uses AI to generate questions automatically.
+     • There is real-time proctoring using webcam and browser monitoring to reduce cheating.
+     • After the quiz, detailed analytics help teachers understand performance.”
+
+4. Main Features (Non-technical explanation)
+   - “Some of the key features are:
+     • Multiple question types – MCQ, True/False, fill in the blanks, coding questions.
+     • AI‑powered question generation – the computer helps create questions based on topics and difficulty.
+     • Real‑time proctoring – face detection, tab change detection, copy‑paste detection.
+     • Role‑based access – Admin, Instructor, and Student dashboards.
+     • Detailed analytics – overall scores, topic‑wise performance, and history of attempts.
+   - Now Chetan will show how our platform uses AI to automatically generate questions.”
+
+Transition line for Aman:
+   - “I would now like to invite Chetan to demonstrate the automatic question generation feature using our AI engine.”
+
+-------------------------------------------------
+PART 2 – AI QUESTION GENERATION DEMO (CHETAN)
+-------------------------------------------------
+[Approx: 3–4 minutes]
+
+1. Short intro to AI feature
+   - “Thank you, Aman. I’m Chetan, and I’ll explain the AI question generation part of our project.
+   - In many exams, teachers spend hours preparing question papers. Our system reduces that effort using AI. The teacher just selects the subject, topic, difficulty, and number of questions, and the AI generates questions automatically.”
+
+2. Explain the idea in simple terms
+   - “In the background, we use a language model (through a tool called Ollama / LLM). You can think of it as a smart assistant that understands programming topics and can create new questions and options based on the instructions we give.
+   - We don’t need to write code every time to generate questions; we just send a prompt like ‘Generate 10 medium‑level JavaScript questions on arrays’ and the AI returns properly formatted questions.”
+
+3. Live/Mock Demo Flow (what you click and say)
+   - Go to the Instructor/Admin area (or question bank / AI quiz section).
+   - Say:
+     • “Here the teacher selects the language – for example JavaScript or Python.”
+     • “Next, the teacher chooses the difficulty level – Easy, Medium, or Hard.”
+     • “Then we enter how many questions we want, for example 5 questions.”
+   - Click on “Generate” or similar button.
+   - Explain:
+     • “The system sends this request to our backend. The backend calls the AI model with a structured prompt.”
+     • “The AI responds with new questions, options, and correct answers. We then store them in our question bank.”
+
+4. Show the generated questions
+   - Scroll through the generated questions and say:
+     • “As you can see, the questions are automatically created by the AI. They follow the topic, difficulty level, and number of questions we requested.”
+     • “The teacher can further edit, approve, or discard any question before using it in a live quiz.”
+
+5. Benefit summary
+   - “This saves a lot of time for teachers and makes it easy to create different sets of question papers for different batches or difficulty levels.”
+
+Transition line for Chetan:
+   - “Next, Yash will demonstrate our student photo reference and face enrollment feature, which is part of our proctoring system.”
+
+-------------------------------------------------
+PART 3 – STUDENT PHOTO REFERENCE / FACE ENROLLMENT DEMO (YASH)
+-------------------------------------------------
+[Approx: 3–4 minutes]
+
+1. Intro to Proctoring & Photo Reference
+   - “Thank you, Chetan. I’m Yash, and I’ll explain the student photo reference and face enrollment part.
+   - In online exams, it’s difficult to verify the identity of the student. Our platform uses the webcam to capture a reference photo of each student. This acts like an ID photo for the system.”
+
+2. Explain face enrollment in simple terms
+   - “Before attempting any quiz, the student has to complete face enrollment once.
+   - The system asks the student to allow camera access and then captures a clear photo of the face.
+   - This photo is stored as the ‘reference photo’. During exams, the live camera feed is compared with this reference to detect if the correct student is giving the exam.”
+
+3. Show the actual face enrollment page
+   - Navigate to `Face Enrollment` page (or `face-enrollment` route).
+   - Say:
+     • “This is the face enrollment screen. The student sees their live camera feed here.”
+     • “When the student clicks on ‘Capture’ or ‘Save Reference Photo’, the system saves this image as their official reference.”
+
+4. Explain how it is used during exam
+   - “Once the reference is stored, the student cannot go to the main dashboard or quizzes without completing this step.
+   - During the actual quiz, the webcam stays on. If the face changes or no face is detected, we can log a warning or violation (for example, if another person comes in front of the camera).”
+
+5. Link to other proctoring features
+   - “Along with face matching, we also track tab changes and copy‑paste actions to reduce cheating. All these events are stored in logs so that the teacher or admin can review suspicious behavior later.”
+
+Transition line for Yash:
+   - “Now, to show how the platform looks from an admin point of view, Vanisha will act as the admin and demonstrate the admin panel and quiz management.”
+
+-------------------------------------------------
+PART 4 – ADMIN WORKFLOW DEMO (VANISHA AS ADMIN)
+-------------------------------------------------
+[Approx: 4–5 minutes]
+
+1. Admin login & role explanation
+   - “Thank you, Yash. I’m Vanisha, and I’ll be acting as the admin.
+   - Our platform supports different roles like Admin, Instructor, and Student. Admins have the highest level of control. They can manage users, quizzes, and see overall analytics.”
+
+2. Show Admin Login
+   - Use the demo admin credentials (from README or seeded accounts).
+   - While logging in, say:
+     • “I will log in as an admin using our demo credentials.”
+   - After login, show the Admin / Dashboard page.
+
+3. Admin Dashboard overview
+   - “Here, the admin can see a quick overview – total quizzes, number of students, recent activity, and maybe recent results.
+   - The admin can navigate to different sections like Quiz Management, Question Bank, Proctoring Logs, and Analytics.”
+
+4. Creating / Managing a Quiz
+   - Go to the quiz management page.
+   - Say:
+     • “From this screen, the admin or instructor can create a new quiz.”
+     • “We select the quiz name, description, duration, start time, and so on.”
+     • “We can choose questions from our question bank, including the AI‑generated questions that Chetan showed earlier.”
+   - Briefly show adding questions to a quiz (either from bank or AI section).
+
+5. Assigning Quiz & Scheduling
+   - “We can assign the quiz to specific students or groups and set the schedule.
+   - Once the quiz is published, it becomes visible in the student’s dashboard under ‘Available Quizzes’.”
+
+6. Admin-side Proctoring & Analytics
+   - “After students attempt the quiz, the admin or teacher can see:
+     • Scores and result summaries.
+     • Question‑wise performance – which questions were difficult.
+     • Proctoring logs – such as tab switches, no‑face detected, multiple faces, etc.
+   - This helps teachers identify cheating patterns and also understand where students are facing difficulties.”
+
+Transition line for Vanisha:
+   - “Now Shashank will act as a student and show how a student gives an exam on our platform, including how proctoring works from the student’s side.”
+
+-------------------------------------------------
+PART 5 – STUDENT WORKFLOW DEMO (SHASHANK AS STUDENT)
+-------------------------------------------------
+[Approx: 4–5 minutes]
+
+1. Student login
+   - “Thank you, Vanisha. I’m Shashank, and I’ll act as a student.
+   - I will now log in as a student using our demo student account.”
+   - Enter student credentials and log in.
+
+2. Student Dashboard overview
+   - “This is the student dashboard. Here I can see:
+     • Upcoming or available quizzes.
+     • My past attempts and scores.
+     • Recent activity or notifications.”
+
+3. Face Enrollment Check (if not done already)
+   - “If I have not completed face enrollment, the system will force me to go to the face enrollment page first, as Yash explained. That ensures the platform has my reference photo.”
+
+4. Starting a Quiz
+   - Go to `Available Quizzes` or the quiz list.
+   - Say:
+     • “I select the quiz that was just created/scheduled by the admin.”
+     • “When I click on ‘Start Quiz’, the system will ask for camera permission and start the proctoring session.”
+
+5. Proctoring during the Quiz (student view)
+   - Show the quiz screen with webcam preview.
+   - Explain in simple language:
+     • “While I answer questions, my face is captured periodically.”
+     • “If I switch to another browser tab or window, the system can detect that and log it as a violation.”
+     • “Copy‑paste actions are also monitored and recorded.”
+   - Answer 2–3 sample questions to show different types (MCQ, True/False, maybe a coding or descriptive question if available).
+
+6. Submitting the Quiz and Viewing Results
+   - Submit the quiz.
+   - “After submitting, I can see my score and basic feedback immediately (if enabled).
+   - I can also go to the ‘My Attempts’ or ‘Results’ page to view all my past quizzes and detailed analytics like marks, time taken, and question-wise performance.”
+
+7. Student perspective summary
+   - “From a student’s point of view, the platform is very user‑friendly but still strict from an exam point of view because of proctoring and monitoring features.”
+
+-------------------------------------------------
+PART 6 – WRAP-UP & FUTURE SCOPE (AMAN OR ANYONE)
+-------------------------------------------------
+[Approx: 2–3 minutes]
+
+1. Overall summary
+   - “To summarize, our Online Quiz & Questionnaire Platform brings together:
+     • AI‑powered question generation to reduce the workload on teachers.
+     • Real‑time proctoring using webcam and browser monitoring to improve exam integrity.
+     • A clean interface for admins, teachers, and students.
+     • Detailed analytics to understand student performance.”
+
+2. Future scope (simple points)
+   - “In the future, we can extend this system by:
+     • Adding support for more subjects and question types.
+     • Improving AI models for even better questions and automatic grading.
+     • Integrating with learning management systems and mobile apps.
+     • Providing more advanced behavioral analytics during exams.”
+
+3. Closing
+   - “Thank you for your time and attention.
+   - We would be happy to answer any questions.”
+
+-------------------------------------------------
+USAGE TIP FOR THE TEAM
+-------------------------------------------------
+- Print or keep this `script.txt` open.
+- Each member should rehearse their lines and adjust the wording to sound natural.
+- Focus on storytelling: problem → solution → demo → impact, not on low-level technical details.
+- Keep the demo smooth: avoid typing too much live; prepare demo data and accounts in advance.
