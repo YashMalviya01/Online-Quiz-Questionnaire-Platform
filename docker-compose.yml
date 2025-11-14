@@ -1,16 +1,18 @@
 services:
   mongo:
-    image: mongo:6
+    image: mongo:7
+    platform: linux/arm64
     restart: unless-stopped
     ports:
       - '27017:27017'
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/quiz-proctor --quiet
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 40s
 
   # docker-model-proxy:
   #   # NOTE: Docker socket mounting doesn't work reliably on Windows
@@ -36,10 +38,10 @@ services:
       PORT: 4000
       MONGO_URI: mongodb://mongo:27017/quiz-proctor
       JWT_SECRET: supersecretjwt
-      CLIENT_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:3000,https://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      CLIENT_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:3000,https://smart-quiz-major-project.ngrok.app
       NODE_ENV: development
       CORS_ALLOW_ALL: 'false'
-      CORS_DOMAIN: https://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      CORS_DOMAIN: https://smart-quiz-major-project.ngrok.app
       # Docker Model Runner (gpt-oss) - Using host proxy
       # Proxy runs on host and forwards to Docker Model Runner CLI
       USE_DOCKER_MODEL: 'true'
@@ -78,24 +80,23 @@ services:
     environment:
       - VITE_API_BASE_URL=http://localhost:4000
       - VITE_WS_URL=ws://localhost:4000
-      - VITE_PUBLIC_TUNNEL_URL=https://unvaporous-jared-nonmonarchal.ngrok-free.dev
+      - VITE_PUBLIC_TUNNEL_URL=https://smart-quiz-major-project.ngrok.app
     ports:
-      - '3000:80'
-      - '80:80'
+      - '5173:80'
     depends_on:
       - backend
     restart: unless-stopped
 
   ngrok:
     image: ngrok/ngrok:latest
-    command: ["http", "http://frontend:80", "--domain=unvaporous-jared-nonmonarchal.ngrok-free.dev", "--log=stdout"]
+    command: ["http", "http://frontend:80", "--url=smart-quiz-major-project.ngrok.app", "--log=stdout"]
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-2up1MIsXh1y3lw23d3miduvT1N6_3TJFWnuVStwJT7xBqfUN6}
+      NGROK_AUTHTOKEN: 2up1MIsXh1y3lw23d3miduvT1N6_3TJFWnuVStwJT7xBqfUN6
     ports:
       - '4040:4040'
-    depends_on:
-      - frontend
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   ollama:
     image: ollama/ollama:latest

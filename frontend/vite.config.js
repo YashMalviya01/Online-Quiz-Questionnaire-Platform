@@ -10,9 +10,10 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'smart-quiz.major-project.ngrok.dev',
+      'smart-quiz-major-project.ngrok.app',
       '.ngrok.dev',
       '.ngrok.io',
+      '.ngrok.app',
       '192.168.1.27'
     ],
     hmr: {
